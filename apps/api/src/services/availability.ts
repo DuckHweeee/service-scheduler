@@ -2,10 +2,28 @@
 import type { AvailabilityQuery, AvailabilityResponse } from '@scheduler/contracts';
 import type { Clock } from '../clock.js';
 import type { DbOrTx } from '../db/client.js';
+import { getTelemetry, startTimer } from '../observability/telemetry.js';
 import { computeSlots } from '../domain/availability/index.js';
 import { resolveDayPlan, toSameDayInfo, toSlotDto } from './day-plan.js';
 
 export async function getAvailability(
+  db: DbOrTx,
+  clock: Clock,
+  dealershipId: string,
+  query: AvailabilityQuery,
+): Promise<AvailabilityResponse> {
+  const telemetry = getTelemetry();
+  const elapsed = startTimer();
+  return telemetry.withSpan('availability.compute', { 'dealership.id': dealershipId, 'service.code': query.serviceType }, async (span) => {
+    const res = await computeAvailability(db, clock, dealershipId, query);
+    const sameDay = res.sameDay?.isSameDay ?? false;
+    span.setAttributes({ 'availability.same_day': sameDay, 'availability.slots': res.slots.length });
+    telemetry.observeAvailability(elapsed(), sameDay);
+    return res;
+  });
+}
+
+async function computeAvailability(
   db: DbOrTx,
   clock: Clock,
   dealershipId: string,

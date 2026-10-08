@@ -5,6 +5,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { jsonSchemaTransform, serializerCompiler, validatorCompiler } from 'fastify-type-provider-zod';
 import type { Clock } from './clock.js';
 import type { Db } from './db/client.js';
+import { registerObservability, traceLogMixin } from './observability/index.js';
 import { registerErrorHandler } from './plugins/error-handler.js';
 import { registerRequestId, REQUEST_ID_HEADER, requestIdOptions } from './plugins/request-id.js';
 import healthRoutes from './routes/health.js';
@@ -20,7 +21,9 @@ export interface AppDeps {
 }
 
 export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
-  const app = Fastify({ logger: deps.logger ?? false, ...requestIdOptions });
+  const logger =
+    deps.logger === true ? { level: 'info', mixin: traceLogMixin } : deps.logger ? { ...deps.logger, mixin: traceLogMixin } : false;
+  const app = Fastify({ logger, ...requestIdOptions });
 
   app.setValidatorCompiler(validatorCompiler);
   app.setSerializerCompiler(serializerCompiler);
@@ -29,6 +32,7 @@ export async function buildApp(deps: AppDeps): Promise<FastifyInstance> {
   app.decorate('clock', deps.clock);
 
   registerRequestId(app);
+  await registerObservability(app);
   registerErrorHandler(app);
 
   await app.register(cors, {
