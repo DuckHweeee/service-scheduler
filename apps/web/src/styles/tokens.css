@@ -1,0 +1,33 @@
+:root {
+  --bg: #eeefea;
+  --ink: #15171a;
+  --paper: #ffffff;
+  --line: #d5d7d0;
+  --line-strong: #c9cbc3;
+  --muted: #565b61;
+  --muted-2: #43474d;
+  --accent: #1f48c9;
+  --accent-hover: #163693;
+  --accent-soft: #e9eefc;
+  --accent-on-dark: #9db4ff;
+  --cta: #e8803f;
+  --warn-bg: #fbede4;
+  --warn-ink: #7a2e09;
+  --notech-ink: #8f360b;
+  --header-ink: #f4f4f0;
+
+  /* extra values taken from the design file */
+  --dark-2: #2b2e33;
+  --dark-line: #33373d;
+  --dark-muted: #a9adb3;
+  --dark-soft: #c3c6cb;
+  --hatch-a: #f3f3ef;
+  --hatch-b: #e8e9e3;
+  --dash: #a9aba3;
+  --status-full: #4d5157;
+
+  --radius: 2px;
+  --font-sans: 'Archivo Variable', 'Archivo', 'Helvetica Neue', Helvetica, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --focus-ring: 3px solid var(--accent);
+}
