@@ -78,6 +78,8 @@ verified, what was caught and corrected. Agent prompts are archived verbatim in 
   once `/dealerships` was implemented. It disclosed this instead of hiding it. Lesson for briefs: temporary scaffolding tests
   should be marked as such.
 - **Gate — mutation checks:** availability ignoring `sameDay.blocked` → 2 tests fail; board including CANCELLED → 1 fails.
+- **Opus slip, fixed:** root ESLint was linting agents' in-progress worktrees under `.claude/worktrees/`, and Opus's gate
+  piped `pnpm verify` into `grep`, which hid the non-zero exit. Fixed the ignore list and switched gates to checking `$?`.
 
 ## Parked (decide later)
 - Board "incoming request / rejected / reserved" panels from the mock.
