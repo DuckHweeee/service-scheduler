@@ -1,8 +1,14 @@
-// Owner: A3. Wave 0 stub — replace notImplemented handlers; keep the default export name.
+// A3: GET /dealerships/:id/availability (SPEC §6).
+import { AvailabilityQuery, AvailabilityResponse, IdParams, routes } from '@scheduler/contracts';
 import type { FastifyInstance } from 'fastify';
-import { routes } from '@scheduler/contracts';
-import { notImplemented } from './_stub.js';
+import type { ZodTypeProvider } from 'fastify-type-provider-zod';
+import { getAvailability } from '../services/availability.js';
 
-export default async function availabilityRoutes(app: FastifyInstance) {
-  app.get(routes.availability, notImplemented);
+export default async function availabilityRoutes(instance: FastifyInstance) {
+  const app = instance.withTypeProvider<ZodTypeProvider>();
+  app.get(
+    routes.availability,
+    { schema: { params: IdParams, querystring: AvailabilityQuery, response: { 200: AvailabilityResponse } } },
+    async (req) => getAvailability(app.db, app.clock, req.params.id, req.query),
+  );
 }
