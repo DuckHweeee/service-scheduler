@@ -101,5 +101,15 @@ verified, what was caught and corrected. Agent prompts are archived verbatim in 
   but CI would have been blind. Fix in `test/helpers/global-setup.ts` re-applies the exit code; proven with the mutant
   (exit 1) and the clean tree (exit 0).
 
+## Wave 2 — F2 record / list / board screens (Sonnet, merged 2026-10-08)
+
+- **Delivered:** design 03 record (cancel dialog with focus trap, `.ics` export, history timeline, stored-fields table),
+  My appointments tabs, design 02 board (grid from opening hours, Express marking, Check in with live-region result, no-show
+  styling), demo seed in the mock handlers. 20 new tests. This time the agent took its own Chrome screenshots using the
+  `executablePath` workaround Opus put in the brief after F1.
+- **Opus visual gate:** re-shot board/record/list at 1440 px (no page-level horizontal scroll) — faithful to designs 02/03.
+  At 390 px the header wraps to four rows and the day-nav "next" button drops to its own line: usable, not polished →
+  assigned to F3. Opus aligned its own fixture ("Customer chose 13:00–15:00") with the A4 history wording.
+
 ## Parked (decide later)
 - Board "incoming request / rejected / reserved" panels from the mock.

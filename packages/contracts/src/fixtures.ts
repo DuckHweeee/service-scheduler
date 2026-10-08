@@ -142,7 +142,7 @@ export const appointmentDetailExample: AppointmentDetail = {
   history: [
     { type: 'SLOT_REQUESTED', occurredAt: '2026-10-07T14:02:09+07:00', summary: 'Requested 10:00–12:00', detail: { startTime: '10:00' } },
     { type: 'CHECK_FAILED', occurredAt: '2026-10-07T14:02:09+07:00', summary: 'Check failed: no Brakes-qualified technician free for the full window. Five alternatives offered.', detail: { reason: 'NO_QUALIFIED_TECHNICIAN', alternatives: 5 } },
-    { type: 'SLOT_REQUESTED', occurredAt: '2026-10-07T14:02:41+07:00', summary: 'Requested 13:00–15:00', detail: { startTime: '13:00' } },
+    { type: 'SLOT_REQUESTED', occurredAt: '2026-10-07T14:02:41+07:00', summary: 'Customer chose 13:00–15:00', detail: { startTime: '13:00' } },
     { type: 'CHECK_PASSED', occurredAt: '2026-10-07T14:02:41+07:00', summary: 'Check passed: Bay 2 and Riya Patel free 13:00–15:00', detail: { bayId: 'BAY-02', technicianId: 'TEC-03' } },
     { type: 'RESOURCES_RESERVED', occurredAt: '2026-10-07T14:02:42+07:00', summary: 'Bay and technician reserved together', detail: {} },
     { type: 'APPOINTMENT_CREATED', occurredAt: '2026-10-07T14:02:42+07:00', summary: 'Appointment record created · confirmation sent', detail: {} },
