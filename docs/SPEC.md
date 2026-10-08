@@ -245,7 +245,7 @@ Fixture = DLR-01 seed (§7), empty day, `sameDay: null` unless stated. Times loc
 | T5 | Brake 10:00; TEC-01 busy 10:30–11:00, TEC-03 busy 09:00–11:00 | 10:00 → `NO_QUALIFIED_TECHNICIAN` (partial overlap rejects) |
 | T6 | Alignment; BAY-03 busy all day, TEC-02 free | all `NO_BAY` |
 | T7 | Alignment; BAY-03 busy all day; TEC-02 busy all day | all `FULLY_BOOKED` |
-| T8 | EV check; TEC-01 and TEC-04 busy 08:00–12:00 | 08:00…10:30 `NO_QUALIFIED_TECHNICIAN` |
+| T8 | EV check 90m; TEC-01 and TEC-04 busy 08:00–12:00 | 08:00…11:30 `NO_QUALIFIED_TECHNICIAN` (11:30–13:00 still overlaps); 12:00 `AVAILABLE` |
 | T9 | Brake, empty day, assignment | tech **TEC-03** (2 skills beats TEC-01's 3), bay **BAY-01** |
 | T10a | Oil 08:00, empty day | bay **BAY-01**; tech **TEC-02** (TEC-02/03/04 tie on skills and busy → id asc) |
 | T10b | Oil 08:00; TEC-02 busy 16:00–17:00 | tech **TEC-03** (tie on skills → fewer busy minutes → id) |
