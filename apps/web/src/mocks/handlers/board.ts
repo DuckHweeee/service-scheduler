@@ -6,9 +6,11 @@ import { fmtMin, isoWeekday, toOffsetIso, zonedToMs } from '../../lib/time.js';
 import { getDealership, getServiceType, store } from '../store.js';
 import type { MockAppointment } from '../store.js';
 import { notFound, problem } from '../support.js';
+import { seedDemoData } from './appointments.js';
 
 export const boardHandlers = [
   http.get(apiUrl(routes.board), ({ params, request }) => {
+    seedDemoData();
     const d = getDealership(String(params.id));
     if (!d) return notFound('Dealership');
     const parsed = BoardQuery.safeParse(Object.fromEntries(new URL(request.url).searchParams));

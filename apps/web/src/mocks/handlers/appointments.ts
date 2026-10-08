@@ -48,6 +48,113 @@ function releaseParts(a: MockAppointment) {
   }
 }
 
+// ---------- demo data (browser mocks only) ----------
+
+const demoSeeded = new WeakSet<object>();
+
+interface DemoSpec {
+  day: number; // days from today (negative = past)
+  service: string;
+  vehicle: string;
+  bay: string;
+  tech: string;
+  start: string;
+  channel?: 'ADVANCE' | 'SAME_DAY';
+  state?: 'checkedIn' | 'cancelled' | 'noShow';
+}
+
+const DEMO: DemoSpec[] = [
+  // Today on the board: a late-arrival candidate, back-to-back jobs, a 45-minute job, a no-show.
+  { day: 0, service: 'OIL_CHANGE', vehicle: 'VEH-01', bay: 'BAY-01', tech: 'TEC-02', start: '08:30', channel: 'SAME_DAY' },
+  { day: 0, service: 'BRAKE_PAD_REPLACEMENT', vehicle: 'VEH-01', bay: 'BAY-02', tech: 'TEC-03', start: '08:00', state: 'checkedIn' },
+  { day: 0, service: 'EV_BATTERY_CHECK', vehicle: 'VEH-02', bay: 'BAY-04', tech: 'TEC-01', start: '09:00', state: 'checkedIn' },
+  { day: 0, service: 'AIR_FILTER_REPLACEMENT', vehicle: 'VEH-01', bay: 'BAY-03', tech: 'TEC-04', start: '09:30', channel: 'SAME_DAY', state: 'noShow' },
+  { day: 0, service: 'WHEEL_ALIGNMENT', vehicle: 'VEH-01', bay: 'BAY-03', tech: 'TEC-02', start: '10:00' },
+  { day: 0, service: 'GENERAL_INSPECTION', vehicle: 'VEH-02', bay: 'BAY-01', tech: 'TEC-04', start: '11:00' },
+  { day: 0, service: 'TIRE_ROTATION', vehicle: 'VEH-02', bay: 'BAY-01', tech: 'TEC-04', start: '11:30' },
+  { day: 0, service: 'GENERAL_INSPECTION', vehicle: 'VEH-02', bay: 'BAY-02', tech: 'TEC-04', start: '15:30', channel: 'SAME_DAY' },
+  // Other days for My appointments.
+  { day: 1, service: 'TIRE_ROTATION', vehicle: 'VEH-01', bay: 'BAY-01', tech: 'TEC-01', start: '09:00' },
+  { day: 3, service: 'EV_BATTERY_CHECK', vehicle: 'VEH-02', bay: 'BAY-04', tech: 'TEC-04', start: '10:30' },
+  { day: 5, service: 'WHEEL_ALIGNMENT', vehicle: 'VEH-01', bay: 'BAY-03', tech: 'TEC-02', start: '14:00', state: 'cancelled' },
+  { day: -2, service: 'AIR_FILTER_REPLACEMENT', vehicle: 'VEH-01', bay: 'BAY-01', tech: 'TEC-01', start: '10:00', channel: 'SAME_DAY', state: 'noShow' },
+  { day: -6, service: 'OIL_CHANGE', vehicle: 'VEH-01', bay: 'BAY-01', tech: 'TEC-02', start: '09:00', state: 'checkedIn' },
+  { day: -20, service: 'BRAKE_PAD_REPLACEMENT', vehicle: 'VEH-01', bay: 'BAY-02', tech: 'TEC-03', start: '13:00', state: 'checkedIn' },
+];
+
+/**
+ * The mock store starts with a single fixture appointment. In the browser this adds a believable day of work
+ * (relative to the mock "today") so My appointments and the Service board have something to show.
+ * Idempotent per store instance; skipped under vitest so unit tests start from the pristine fixture.
+ */
+export function seedDemoData(force = false): void {
+  if (!force && import.meta.env.MODE === 'test') return;
+  if (demoSeeded.has(store.appointments)) return;
+  demoSeeded.add(store.appointments);
+
+  const d = getDealership('DLR-01')!;
+  const tz = d.timezone;
+  const today = mockNow(tz).date;
+  let n = 380;
+  for (const spec of DEMO) {
+    const service = getServiceType(spec.service)!;
+    const date = addDays(today, spec.day);
+    const start = parseMin(spec.start);
+    const end = start + service.durationMin;
+    const channel = spec.channel ?? 'ADVANCE';
+    const createdAtMs = zonedToMs(channel === 'SAME_DAY' ? date : addDays(date, -3), 7 * 60 + 40, tz);
+    const range = `${fmtMin(start)}–${fmtMin(end)}`;
+    const bay = store.bays[d.id]!.find((b) => b.id === spec.bay)!;
+    const tech = store.techs[d.id]!.find((t) => t.id === spec.tech)!;
+    const history = [
+      event('SLOT_REQUESTED', createdAtMs, tz, `Requested ${range}`, { startTime: fmtMin(start) }),
+      event('CHECK_PASSED', createdAtMs, tz, `Check passed: ${bay.name} and ${tech.name} free ${range}`),
+      event('RESOURCES_RESERVED', createdAtMs, tz, 'Bay and technician reserved together'),
+      event('APPOINTMENT_CREATED', createdAtMs, tz, 'Appointment record created · confirmation sent'),
+    ];
+    const a: MockAppointment = {
+      reference: `APT-${date.replaceAll('-', '')}-${String(n++).padStart(4, '0')}`,
+      status: 'CONFIRMED',
+      channel,
+      customerId: 'CUS-10482',
+      vehicleId: spec.vehicle,
+      dealershipId: d.id,
+      serviceTypeCode: service.code,
+      technicianId: tech.id,
+      bayId: bay.id,
+      date,
+      startMin: start,
+      endMin: end,
+      createdAtMs,
+      checkedInAtMs: null,
+      cancelledAtMs: null,
+      bookingSessionId: '00000000-0000-4000-8000-000000000002',
+      parts: [],
+      history,
+    };
+    const at = zonedToMs(date, start, tz);
+    if (spec.state === 'checkedIn') {
+      a.checkedInAtMs = at - 5 * 60000;
+      history.push(event('CHECKED_IN', a.checkedInAtMs, tz, 'Customer checked in'));
+    } else if (spec.state === 'cancelled') {
+      a.status = 'CANCELLED';
+      a.cancelledAtMs = createdAtMs + 3600000;
+      history.push(event('APPOINTMENT_CANCELLED', a.cancelledAtMs, tz, 'Appointment cancelled'));
+    } else if (spec.state === 'noShow') {
+      a.status = 'NO_SHOW';
+      history.push(
+        event(
+          'APPOINTMENT_NO_SHOW',
+          at + (d.sameDayPolicy.lateGraceMin + 1) * 60000,
+          tz,
+          `Released as no-show: arrived more than ${d.sameDayPolicy.lateGraceMin} minutes late`,
+        ),
+      );
+    }
+    store.appointments.push(a);
+  }
+}
+
 export const appointmentHandlers = [
   http.post(apiUrl(routes.appointments), async ({ request }) => {
     const raw: unknown = await request.json().catch(() => undefined);
@@ -224,6 +331,7 @@ export const appointmentHandlers = [
   }),
 
   http.get(apiUrl(routes.appointments), ({ request }) => {
+    seedDemoData();
     const url = new URL(request.url);
     const customerId = url.searchParams.get('customerId');
     if (!customerId)
@@ -244,11 +352,13 @@ export const appointmentHandlers = [
   }),
 
   http.get(apiUrl(routes.appointment), ({ params }) => {
+    seedDemoData();
     const a = store.appointments.find((x) => x.reference === params.reference);
     return a ? HttpResponse.json(toDetail(a)) : notFound('Appointment');
   }),
 
   http.post(apiUrl(routes.cancelAppointment), async ({ params, request }) => {
+    seedDemoData();
     const a = store.appointments.find((x) => x.reference === params.reference);
     if (!a) return notFound('Appointment');
     const raw: unknown = await request.json().catch(() => ({}));
@@ -281,6 +391,7 @@ export const appointmentHandlers = [
   }),
 
   http.post(apiUrl(routes.checkIn), ({ params }) => {
+    seedDemoData();
     const a = store.appointments.find((x) => x.reference === params.reference);
     if (!a) return notFound('Appointment');
     if (a.status !== 'CONFIRMED' || a.checkedInAtMs !== null) {

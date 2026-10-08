@@ -1,0 +1,342 @@
+.main {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 40px 32px 72px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+}
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.eyebrow {
+  min-height: 1.45em;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+.h1 {
+  font-size: 44px;
+  line-height: 1.02;
+  font-weight: 800;
+  font-stretch: 125%;
+  letter-spacing: -0.01em;
+}
+.lede {
+  font-size: 16px;
+  color: var(--muted-2);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.todayTag {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 2px 7px;
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.select {
+  height: 44px;
+  padding: 0 12px;
+  background: var(--paper);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  font: inherit;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+}
+.iconBtn,
+.todayBtn {
+  height: 44px;
+  background: var(--paper);
+  border: 1px solid var(--line-strong);
+  cursor: pointer;
+  color: var(--ink);
+  font-weight: 600;
+}
+.iconBtn {
+  width: 44px;
+  display: grid;
+  place-items: center;
+}
+.todayBtn {
+  padding: 0 16px;
+}
+
+.msgOk,
+.msgErr {
+  padding: 12px 14px;
+  font-size: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.msgOk {
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+}
+.msgErr {
+  background: var(--warn-bg);
+  color: var(--warn-ink);
+}
+.msgCode {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 6px;
+  background: var(--warn-ink);
+  color: #fff;
+}
+
+.state,
+.closed {
+  padding: 28px 24px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  color: var(--muted-2);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+}
+.retry {
+  min-height: 44px;
+  padding: 0 18px;
+  background: var(--paper);
+  border: 1px solid var(--ink);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* ---------- timeline ---------- */
+
+.timeline {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  padding: 8px 0 0;
+  min-width: 0;
+}
+.scroll {
+  overflow-x: auto;
+}
+.grid {
+  display: grid;
+  padding: 0 20px 16px 0;
+}
+.contents {
+  display: contents;
+}
+.hour {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+  padding: 10px 0 0 4px;
+}
+.section {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  padding: 12px 20px 0;
+}
+.rowHead {
+  padding: 8px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-bottom: 1px solid #e4e5df;
+  min-width: 0;
+}
+.rowName {
+  font-weight: 700;
+  font-size: 14px;
+}
+.rowSub {
+  font-size: 12px;
+  color: var(--muted);
+}
+.track {
+  border-bottom: 1px solid #e4e5df;
+  background-image: linear-gradient(to right, #e4e5df 1px, transparent 1px);
+}
+
+.block {
+  z-index: 2;
+  margin: 5px 2px;
+  background: #dcded7;
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  position: relative;
+}
+.block:focus-within {
+  outline: var(--focus-ring);
+  outline-offset: 1px;
+  z-index: 3;
+}
+.blockLink {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 0 8px;
+  flex: 1 1 auto;
+  color: inherit;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.blockLink:hover {
+  color: inherit;
+  text-decoration: underline;
+}
+.blockLink:focus-visible {
+  outline-offset: -3px;
+}
+.blockText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.blockActions {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 4px 4px;
+  min-width: 0;
+}
+.tag {
+  flex: none;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 18px;
+  padding: 0 4px;
+  background: var(--cta);
+  color: var(--ink);
+}
+.checkedIn {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+.expressBlock:not(.checkedIn):not(.noShow) {
+  box-shadow: inset 3px 0 0 var(--cta);
+}
+.noShow {
+  background: repeating-linear-gradient(135deg, var(--hatch-a) 0 6px, var(--hatch-b) 6px 12px);
+  color: var(--muted);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+.noShow .blockText {
+  text-decoration: line-through;
+}
+.checkIn {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 18px;
+  padding: 0 4px;
+  background: var(--ink);
+  color: #fff;
+  border: 0;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 18px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.checkIn:disabled {
+  opacity: 0.6;
+}
+.narrow .blockLink {
+  padding: 0 4px;
+}
+.narrow .checkIn {
+  font-size: 10px;
+  padding: 0;
+}
+.narrow .blockActions {
+  padding: 0 2px 3px;
+}
+.block:has(.blockActions) .blockLink {
+  flex: 0 0 auto;
+  height: 22px;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  font-size: 13px;
+  color: var(--muted-2);
+}
+.legend span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.legend i {
+  width: 14px;
+  height: 14px;
+  display: inline-block;
+}
+.swBooked {
+  background: #dcded7;
+}
+.swIn {
+  background: var(--accent);
+}
+.swExpress {
+  background: #dcded7;
+  box-shadow: inset 3px 0 0 var(--cta);
+}
+.swNoShow {
+  background: repeating-linear-gradient(135deg, var(--hatch-a) 0 3px, var(--hatch-b) 3px 6px);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+@media (max-width: 600px) {
+  .main {
+    padding: 24px 16px 56px;
+  }
+  .h1 {
+    font-size: 34px;
+  }
+}
