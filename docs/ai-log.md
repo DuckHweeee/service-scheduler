@@ -122,6 +122,11 @@ verified, what was caught and corrected. Agent prompts are archived verbatim in 
   the transaction would have rolled the release back and left the slot blocked.
 - **Gate — mutation checks (exit codes now trustworthy):** grace boundary `>` → `>=` → exit 1 (1 test); late rule applied to
   advance bookings → exit 1 (1 test).
+- **Opus slip #3, and a flaky-test finding:** the post-merge `pnpm verify` exited 1 (12 web tests timed out at 5 s) but Opus's
+  command chained the push with `;`, so it pushed anyway. Investigation: load average 242 while A5 and F3 ran suites/e2e in
+  parallel; the same web suite passed 46/46 on an isolated re-run → environmental flakiness, code on `main` was correct.
+  Fixes: (1) pushes are now only ever `pnpm verify … && git push`; (2) harden web test timeouts after F3 merges (F3 owns
+  `apps/web` right now — avoiding a merge conflict).
 
 ## Parked (decide later)
 - Board "incoming request / rejected / reserved" panels from the mock.
