@@ -1,3 +1,4 @@
+import './instrumentation.js'; // must stay first: patches http/pg before they load
 import { buildApp } from './app.js';
 import { clockFromEnv } from './clock.js';
 import { loadConfig } from './config.js';

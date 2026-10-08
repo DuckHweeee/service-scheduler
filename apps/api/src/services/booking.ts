@@ -14,6 +14,7 @@ import { appointmentParts, appointments, bookingEvents, inventory } from '../db/
 import { checkWindow } from '../domain/availability/index.js';
 import { DomainError, notFound } from '../domain/errors.js';
 import { formatLocalTime, parseLocalTime, toInstant } from '../domain/time.js';
+import { getTelemetry, startTimer, type BookingAttempt } from '../observability/telemetry.js';
 import { pgErrorCode } from '../plugins/error-handler.js';
 import { loadAppointmentDetail } from './appointment-query.js';
 import { loadAlternatives, resolveDayPlan, type DayPlan } from './day-plan.js';
@@ -62,10 +63,44 @@ const findByKey = async (db: Db | Tx, key: string): Promise<AppointmentDetail | 
   return row ? loadAppointmentDetail(db, { id: row.id }) : null;
 };
 
+/** Observability wrapper: one span + one `booking_attempts_total` increment per call, no PII in attributes. */
 export async function createAppointment(
   deps: { db: Db; clock: Clock },
   body: CreateAppointmentRequest,
   idempotencyKey?: string,
+): Promise<BookingResult> {
+  const telemetry = getTelemetry();
+  const elapsed = startTimer();
+  const ctx: { channel: string } = { channel: 'unknown' };
+  const attrs = { 'dealership.id': body.dealershipId, 'service.code': body.serviceTypeCode };
+  return telemetry.withSpan('booking.reserve', attrs, async (span) => {
+    let attempt: BookingAttempt;
+    try {
+      const result = await reserveAppointment(deps, body, idempotencyKey, ctx);
+      attempt = { outcome: result.created ? 'created' : 'replayed', reason: 'none', channel: ctx.channel };
+      return result;
+    } catch (err) {
+      const e = err instanceof DomainError ? err : undefined;
+      attempt = {
+        outcome: e && e.status !== 409 ? 'invalid' : 'rejected',
+        reason: e ? (e.extras.reason ?? e.code) : 'INTERNAL_ERROR',
+        channel: ctx.channel,
+      };
+      throw err;
+    } finally {
+      // `attempt` is always assigned: both paths above set it before leaving the try block.
+      const done = attempt!;
+      span.setAttributes({ 'booking.channel': done.channel, 'booking.outcome': done.outcome, 'booking.reason': done.reason });
+      telemetry.bookingAttempt({ ...done, dealershipId: body.dealershipId, serviceTypeCode: body.serviceTypeCode, durationMs: Math.round(elapsed() * 1000) });
+    }
+  });
+}
+
+async function reserveAppointment(
+  deps: { db: Db; clock: Clock },
+  body: CreateAppointmentRequest,
+  idempotencyKey: string | undefined,
+  ctx: { channel: string },
 ): Promise<BookingResult> {
   const { db, clock } = deps;
 
@@ -117,6 +152,7 @@ export async function createAppointment(
     }
   }
 
+  ctx.channel = plan.isSameDay ? 'SAME_DAY' : 'ADVANCE';
   const startAt = toInstant(body.date, startMin, tz);
   const endAt = toInstant(body.date, endMin, tz);
   const startTime = formatLocalTime(startMin);
@@ -139,9 +175,13 @@ export async function createAppointment(
 
   // ---- steps 2-7 ----
   let appointmentId: string;
+  const telemetry = getTelemetry();
+  const reserveElapsed = startTimer();
   try {
     appointmentId = await db.transaction(async (tx) => {
+      const lockElapsed = startTimer();
       await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`${dealership.id}:${body.date}`}::text))`);
+      telemetry.observeLockWait(lockElapsed());
 
       // A concurrent request with the same key may have committed while we waited for the lock.
       if (idempotencyKey) {
@@ -254,7 +294,9 @@ export async function createAppointment(
       ]);
       return id;
     });
+    telemetry.observeReserve(reserveElapsed());
   } catch (err) {
+    telemetry.observeReserve(reserveElapsed());
     if (err instanceof IdempotentReplay) {
       return { created: false, appointment: (await loadAppointmentDetail(db, { id: err.appointmentId }))! };
     }
