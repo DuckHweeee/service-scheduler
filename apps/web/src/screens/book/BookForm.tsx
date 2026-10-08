@@ -300,7 +300,7 @@ export function BookForm({ dealerships, serviceTypes, vehicles }: Props) {
               })}
             </div>
 
-            {date === today ? (
+            {date === today || data?.sameDay ? (
               <p className={styles.notice}>
                 {`Same-day booking covers express maintenance only. Please arrive on time — same-day bookings are released if you are more than ${graceMin} minutes late.`}
               </p>
@@ -326,9 +326,12 @@ export function BookForm({ dealerships, serviceTypes, vehicles }: Props) {
                 Loading availability…
               </p>
             ) : availability.error ? (
-              <p role="alert" className={styles.warn}>
-                {errorMessage(availability.error)}
-              </p>
+              <div role="alert" className={styles.warn}>
+                <p>{errorMessage(availability.error)}</p>
+                <button type="button" className={styles.retry} onClick={() => void availability.refetch()}>
+                  Try again
+                </button>
+              </div>
             ) : data?.sameDay?.blocked === 'SERVICE_NOT_EXPRESS' ? (
               <p
                 className={styles.warn}

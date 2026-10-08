@@ -31,9 +31,18 @@ export function BookScreen() {
   return (
     <main className={styles.main}>
       {failed ? (
-        <p role="alert" className={styles.warn}>
-          {errorMessage(failed)}
-        </p>
+        <div role="alert" className={styles.warn}>
+          <p>{errorMessage(failed)}</p>
+          <button
+            type="button"
+            className={styles.retry}
+            onClick={() => {
+              for (const q of [dealerships, serviceTypes, vehicles]) if (q.isError) void q.refetch();
+            }}
+          >
+            Try again
+          </button>
+        </div>
       ) : ready ? (
         <p role="alert" className={styles.warn}>
           Booking is not available right now.

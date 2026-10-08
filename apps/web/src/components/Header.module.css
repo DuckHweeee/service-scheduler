@@ -86,8 +86,46 @@
   font-weight: 600;
 }
 
+/* Phone: row 1 = logo + title + avatar; row 2 = nav (scrolls sideways if it ever overflows). */
 @media (max-width: 600px) {
   .inner {
-    padding: 12px 16px;
+    padding: 10px 16px 0;
+    gap: 6px 12px;
+    flex-wrap: wrap;
+  }
+  .brand {
+    flex: 1 1 0;
+    min-width: 0;
+    gap: 10px;
+  }
+  .title {
+    font-size: 15px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .userName {
+    display: none;
+  }
+  .user {
+    order: 2;
+  }
+  .nav {
+    order: 3;
+    flex: 1 0 100%;
+    flex-wrap: nowrap;
+    gap: 2px;
+    margin: 0 -16px;
+    padding: 0 16px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .nav::-webkit-scrollbar {
+    display: none;
+  }
+  .link {
+    flex: 0 0 auto;
+    padding: 12px 12px;
+    white-space: nowrap;
   }
 }
