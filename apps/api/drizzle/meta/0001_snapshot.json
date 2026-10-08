@@ -1,0 +1,1093 @@
+{
+  "id": "bff51805-2f56-476f-9ece-b2dd1c222e63",
+  "prevId": "ead2df4a-0ede-4acf-8c36-85a1c7a9da81",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.appointment_parts": {
+      "name": "appointment_parts",
+      "schema": "",
+      "columns": {
+        "appointment_id": {
+          "name": "appointment_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sku": {
+          "name": "sku",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "qty": {
+          "name": "qty",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "released_at": {
+          "name": "released_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "appointment_parts_appointment_id_appointments_id_fk": {
+          "name": "appointment_parts_appointment_id_appointments_id_fk",
+          "tableFrom": "appointment_parts",
+          "columnsFrom": [
+            "appointment_id"
+          ],
+          "tableTo": "appointments",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "appointment_parts_sku_parts_sku_fk": {
+          "name": "appointment_parts_sku_parts_sku_fk",
+          "tableFrom": "appointment_parts",
+          "columnsFrom": [
+            "sku"
+          ],
+          "tableTo": "parts",
+          "columnsTo": [
+            "sku"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "appointment_parts_appointment_id_sku_pk": {
+          "name": "appointment_parts_appointment_id_sku_pk",
+          "columns": [
+            "appointment_id",
+            "sku"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "appointment_parts_qty_check": {
+          "name": "appointment_parts_qty_check",
+          "value": "\"appointment_parts\".\"qty\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.appointments": {
+      "name": "appointments",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "reference": {
+          "name": "reference",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "appointment_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'CONFIRMED'"
+        },
+        "channel": {
+          "name": "channel",
+          "type": "booking_channel",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "vehicle_id": {
+          "name": "vehicle_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dealership_id": {
+          "name": "dealership_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "service_type_code": {
+          "name": "service_type_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "technician_id": {
+          "name": "technician_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "service_bay_id": {
+          "name": "service_bay_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "start_at": {
+          "name": "start_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "end_at": {
+          "name": "end_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "duration_min": {
+          "name": "duration_min",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "booking_session_id": {
+          "name": "booking_session_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "idempotency_key": {
+          "name": "idempotency_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "checked_in_at": {
+          "name": "checked_in_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cancelled_at": {
+          "name": "cancelled_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cancel_reason": {
+          "name": "cancel_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "appointments_dealership_start": {
+          "name": "appointments_dealership_start",
+          "columns": [
+            {
+              "expression": "dealership_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "start_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "appointments_customer_start": {
+          "name": "appointments_customer_start",
+          "columns": [
+            {
+              "expression": "customer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "start_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "appointments_customer_id_customers_id_fk": {
+          "name": "appointments_customer_id_customers_id_fk",
+          "tableFrom": "appointments",
+          "columnsFrom": [
+            "customer_id"
+          ],
+          "tableTo": "customers",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "appointments_vehicle_id_vehicles_id_fk": {
+          "name": "appointments_vehicle_id_vehicles_id_fk",
+          "tableFrom": "appointments",
+          "columnsFrom": [
+            "vehicle_id"
+          ],
+          "tableTo": "vehicles",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "appointments_dealership_id_dealerships_id_fk": {
+          "name": "appointments_dealership_id_dealerships_id_fk",
+          "tableFrom": "appointments",
+          "columnsFrom": [
+            "dealership_id"
+          ],
+          "tableTo": "dealerships",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "appointments_service_type_code_service_types_code_fk": {
+          "name": "appointments_service_type_code_service_types_code_fk",
+          "tableFrom": "appointments",
+          "columnsFrom": [
+            "service_type_code"
+          ],
+          "tableTo": "service_types",
+          "columnsTo": [
+            "code"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "appointments_technician_dealership_fk": {
+          "name": "appointments_technician_dealership_fk",
+          "tableFrom": "appointments",
+          "columnsFrom": [
+            "technician_id",
+            "dealership_id"
+          ],
+          "tableTo": "technicians",
+          "columnsTo": [
+            "id",
+            "dealership_id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "appointments_bay_dealership_fk": {
+          "name": "appointments_bay_dealership_fk",
+          "tableFrom": "appointments",
+          "columnsFrom": [
+            "service_bay_id",
+            "dealership_id"
+          ],
+          "tableTo": "service_bays",
+          "columnsTo": [
+            "id",
+            "dealership_id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "appointments_reference_unique": {
+          "name": "appointments_reference_unique",
+          "columns": [
+            "reference"
+          ],
+          "nullsNotDistinct": false
+        },
+        "appointments_idempotency_key_unique": {
+          "name": "appointments_idempotency_key_unique",
+          "columns": [
+            "idempotency_key"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "appointments_end_after_start": {
+          "name": "appointments_end_after_start",
+          "value": "\"appointments\".\"end_at\" > \"appointments\".\"start_at\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.booking_events": {
+      "name": "booking_events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "bigserial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "session_id": {
+          "name": "session_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "appointment_id": {
+          "name": "appointment_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "detail": {
+          "name": "detail",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "occurred_at": {
+          "name": "occurred_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "booking_events_session": {
+          "name": "booking_events_session",
+          "columns": [
+            {
+              "expression": "session_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "occurred_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        },
+        "booking_events_appointment": {
+          "name": "booking_events_appointment",
+          "columns": [
+            {
+              "expression": "appointment_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "occurred_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "with": {},
+          "method": "btree",
+          "concurrently": false
+        }
+      },
+      "foreignKeys": {
+        "booking_events_appointment_id_appointments_id_fk": {
+          "name": "booking_events_appointment_id_appointments_id_fk",
+          "tableFrom": "booking_events",
+          "columnsFrom": [
+            "appointment_id"
+          ],
+          "tableTo": "appointments",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.customers": {
+      "name": "customers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "full_name": {
+          "name": "full_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phone": {
+          "name": "phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.dealerships": {
+      "name": "dealerships",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "timezone": {
+          "name": "timezone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "opens_at": {
+          "name": "opens_at",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "closes_at": {
+          "name": "closes_at",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "working_days": {
+          "name": "working_days",
+          "type": "smallint[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{1,2,3,4,5}'"
+        },
+        "same_day_lead_min": {
+          "name": "same_day_lead_min",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 120
+        },
+        "same_day_quota_pct": {
+          "name": "same_day_quota_pct",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 20
+        },
+        "late_grace_min": {
+          "name": "late_grace_min",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 15
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "dealerships_same_day_quota_pct_check": {
+          "name": "dealerships_same_day_quota_pct_check",
+          "value": "\"dealerships\".\"same_day_quota_pct\" BETWEEN 0 AND 100"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.inventory": {
+      "name": "inventory",
+      "schema": "",
+      "columns": {
+        "dealership_id": {
+          "name": "dealership_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sku": {
+          "name": "sku",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "on_hand": {
+          "name": "on_hand",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reserved": {
+          "name": "reserved",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "inventory_dealership_id_dealerships_id_fk": {
+          "name": "inventory_dealership_id_dealerships_id_fk",
+          "tableFrom": "inventory",
+          "columnsFrom": [
+            "dealership_id"
+          ],
+          "tableTo": "dealerships",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "inventory_sku_parts_sku_fk": {
+          "name": "inventory_sku_parts_sku_fk",
+          "tableFrom": "inventory",
+          "columnsFrom": [
+            "sku"
+          ],
+          "tableTo": "parts",
+          "columnsTo": [
+            "sku"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "inventory_dealership_id_sku_pk": {
+          "name": "inventory_dealership_id_sku_pk",
+          "columns": [
+            "dealership_id",
+            "sku"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "inventory_on_hand_check": {
+          "name": "inventory_on_hand_check",
+          "value": "\"inventory\".\"on_hand\" >= 0"
+        },
+        "inventory_reserved_check": {
+          "name": "inventory_reserved_check",
+          "value": "\"inventory\".\"reserved\" >= 0"
+        },
+        "inventory_reserved_le_on_hand": {
+          "name": "inventory_reserved_le_on_hand",
+          "value": "\"inventory\".\"reserved\" <= \"inventory\".\"on_hand\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.parts": {
+      "name": "parts",
+      "schema": "",
+      "columns": {
+        "sku": {
+          "name": "sku",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.service_bays": {
+      "name": "service_bays",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "dealership_id": {
+          "name": "dealership_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bay_type": {
+          "name": "bay_type",
+          "type": "bay_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "service_bays_dealership_id_dealerships_id_fk": {
+          "name": "service_bays_dealership_id_dealerships_id_fk",
+          "tableFrom": "service_bays",
+          "columnsFrom": [
+            "dealership_id"
+          ],
+          "tableTo": "dealerships",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "service_bays_id_dealership_id_key": {
+          "name": "service_bays_id_dealership_id_key",
+          "columns": [
+            "id",
+            "dealership_id"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.service_part_requirements": {
+      "name": "service_part_requirements",
+      "schema": "",
+      "columns": {
+        "service_type_code": {
+          "name": "service_type_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "vehicle_model": {
+          "name": "vehicle_model",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sku": {
+          "name": "sku",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "qty": {
+          "name": "qty",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "service_part_requirements_service_type_code_service_types_code_fk": {
+          "name": "service_part_requirements_service_type_code_service_types_code_fk",
+          "tableFrom": "service_part_requirements",
+          "columnsFrom": [
+            "service_type_code"
+          ],
+          "tableTo": "service_types",
+          "columnsTo": [
+            "code"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        },
+        "service_part_requirements_sku_parts_sku_fk": {
+          "name": "service_part_requirements_sku_parts_sku_fk",
+          "tableFrom": "service_part_requirements",
+          "columnsFrom": [
+            "sku"
+          ],
+          "tableTo": "parts",
+          "columnsTo": [
+            "sku"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "service_part_requirements_qty_check": {
+          "name": "service_part_requirements_qty_check",
+          "value": "\"service_part_requirements\".\"qty\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.service_types": {
+      "name": "service_types",
+      "schema": "",
+      "columns": {
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "duration_min": {
+          "name": "duration_min",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "required_skill": {
+          "name": "required_skill",
+          "type": "skill",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "allowed_bay_types": {
+          "name": "allowed_bay_types",
+          "type": "bay_type[]",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "is_express": {
+          "name": "is_express",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "powertrains": {
+          "name": "powertrains",
+          "type": "powertrain[]",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{ICE,EV}'"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "service_types_duration_min_check": {
+          "name": "service_types_duration_min_check",
+          "value": "\"service_types\".\"duration_min\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.technicians": {
+      "name": "technicians",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "dealership_id": {
+          "name": "dealership_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "skills": {
+          "name": "skills",
+          "type": "skill[]",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "technicians_dealership_id_dealerships_id_fk": {
+          "name": "technicians_dealership_id_dealerships_id_fk",
+          "tableFrom": "technicians",
+          "columnsFrom": [
+            "dealership_id"
+          ],
+          "tableTo": "dealerships",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "technicians_id_dealership_id_key": {
+          "name": "technicians_id_dealership_id_key",
+          "columns": [
+            "id",
+            "dealership_id"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.vehicles": {
+      "name": "vehicles",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "customer_id": {
+          "name": "customer_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "model_year": {
+          "name": "model_year",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "model_name": {
+          "name": "model_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "powertrain": {
+          "name": "powertrain",
+          "type": "powertrain",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "vin": {
+          "name": "vin",
+          "type": "char(17)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "plate": {
+          "name": "plate",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "vehicles_customer_id_customers_id_fk": {
+          "name": "vehicles_customer_id_customers_id_fk",
+          "tableFrom": "vehicles",
+          "columnsFrom": [
+            "customer_id"
+          ],
+          "tableTo": "customers",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "vehicles_vin_unique": {
+          "name": "vehicles_vin_unique",
+          "columns": [
+            "vin"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.appointment_status": {
+      "name": "appointment_status",
+      "schema": "public",
+      "values": [
+        "CONFIRMED",
+        "CANCELLED",
+        "NO_SHOW"
+      ]
+    },
+    "public.bay_type": {
+      "name": "bay_type",
+      "schema": "public",
+      "values": [
+        "GENERAL_LIFT",
+        "ALIGNMENT_RACK",
+        "EV_ISOLATED",
+        "WASH_BAY"
+      ]
+    },
+    "public.booking_channel": {
+      "name": "booking_channel",
+      "schema": "public",
+      "values": [
+        "ADVANCE",
+        "SAME_DAY"
+      ]
+    },
+    "public.powertrain": {
+      "name": "powertrain",
+      "schema": "public",
+      "values": [
+        "ICE",
+        "EV"
+      ]
+    },
+    "public.skill": {
+      "name": "skill",
+      "schema": "public",
+      "values": [
+        "GENERAL",
+        "BRAKES",
+        "ALIGNMENT",
+        "EV_HIGH_VOLTAGE"
+      ]
+    }
+  },
+  "schemas": {},
+  "views": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
