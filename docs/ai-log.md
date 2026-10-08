@@ -58,5 +58,17 @@ verified, what was caught and corrected. Agent prompts are archived verbatim in 
 - **Opus glue for W2:** `services/day-plan.ts` (plan resolution, alternatives, DTO mappers) with 6 integration tests.
   Opus's own test initially failed — the expected horizon date assumed October has 30 days; the code was right.
 
+## Wave 1 — F1 web shell + Book screen (Sonnet, merged 2026-10-08)
+
+- **Delivered:** app shell, typed API client (contract-validated, problem+json → `ApiError`), hooks for every endpoint,
+  MSW handlers with a client-side port of the §5 rules and `?mock=conflict|parts|cutoff|morning` scenarios, the full Book
+  screen incl. same-day states. 26 component/mock tests.
+- **Honest gap in the report:** the agent could not get a browser screenshot (headless Chrome + service worker) and marked
+  the 1440/390 px criterion ❌ instead of claiming it. Opus closed the gap: Playwright's bundled Chromium refuses macOS 12,
+  so Opus drove the system Google Chrome via `executablePath`, captured `docs/screenshots/book-*.png` at 1440 and 390 px,
+  confirmed no page-level horizontal scroll (scrollWidth = viewport) and compared against design 01 by eye. The same-day
+  "morning" scenario shows earliest start 11:30, Express labels, the late-arrival notice and Marco Ortiz assigned for an
+  oil change (consistent with engine test T10a).
+
 ## Parked (decide later)
 - Board "incoming request / rejected / reserved" panels from the mock.
