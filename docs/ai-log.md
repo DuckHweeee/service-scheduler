@@ -113,5 +113,15 @@ verified, what was caught and corrected. Agent prompts are archived verbatim in 
   for one commit by running only the contracts tests before pushing (a web test asserted the old text). Rule tightened:
   Opus runs full `pnpm verify` + exit code before every push, no exceptions.
 
+## Wave 3 — A7 late-arrival policy (Sonnet, merged 2026-10-08)
+
+- **Delivered:** check-in endpoint (inclusive 15-minute grace, same-day only), `markLateNoShow` shared with the 60 s sweeper,
+  guarded `UPDATE … WHERE status='CONFIRMED' AND checked_in_at IS NULL` so check-in / cancel / sweeper races resolve to one
+  outcome; reuses Opus's `releaseParts`. 10 integration tests incl. a check-in vs sweeper race.
+- **Good judgement by the agent:** the late NO_SHOW transition is committed *before* the 409 is thrown — throwing inside
+  the transaction would have rolled the release back and left the slot blocked.
+- **Gate — mutation checks (exit codes now trustworthy):** grace boundary `>` → `>=` → exit 1 (1 test); late rule applied to
+  advance bookings → exit 1 (1 test).
+
 ## Parked (decide later)
 - Board "incoming request / rejected / reserved" panels from the mock.
