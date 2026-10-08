@@ -54,11 +54,6 @@ describe('app', () => {
     });
   });
 
-  it('stubbed business route → 501', async () => {
-    const res = await app.inject({ method: 'GET', url: '/api/v1/dealerships' });
-    expect(res.statusCode).toBe(501);
-  });
-
   it('health: live and ready', async () => {
     const live = await app.inject({ method: 'GET', url: '/health/live' });
     expect(live.statusCode).toBe(200);

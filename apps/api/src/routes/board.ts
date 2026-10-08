@@ -1,8 +1,14 @@
-// Owner: A3. Wave 0 stub — replace notImplemented handlers; keep the default export name.
+// A3: GET /dealerships/:id/board (SPEC §6, S3).
+import { BoardQuery, BoardResponse, IdParams, routes } from '@scheduler/contracts';
 import type { FastifyInstance } from 'fastify';
-import { routes } from '@scheduler/contracts';
-import { notImplemented } from './_stub.js';
+import type { ZodTypeProvider } from 'fastify-type-provider-zod';
+import { getBoard } from '../services/board.js';
 
-export default async function boardRoutes(app: FastifyInstance) {
-  app.get(routes.board, notImplemented);
+export default async function boardRoutes(instance: FastifyInstance) {
+  const app = instance.withTypeProvider<ZodTypeProvider>();
+  app.get(
+    routes.board,
+    { schema: { params: IdParams, querystring: BoardQuery, response: { 200: BoardResponse } } },
+    async (req) => getBoard(app.db, req.params.id, req.query.date),
+  );
 }
