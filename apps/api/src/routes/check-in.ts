@@ -1,8 +1,14 @@
-// Owner: A7. Wave 0 stub — replace notImplemented handlers; keep the default export name.
+// Owner: A7. Advisor check-in (SPEC §6.3).
+import { AppointmentDetail, ReferenceParams, routes } from '@scheduler/contracts';
 import type { FastifyInstance } from 'fastify';
-import { routes } from '@scheduler/contracts';
-import { notImplemented } from './_stub.js';
+import type { ZodTypeProvider } from 'fastify-type-provider-zod';
+import { checkInAppointment } from '../services/check-in.js';
 
-export default async function checkInRoutes(app: FastifyInstance) {
-  app.post(routes.checkIn, notImplemented);
+export default async function checkInRoutes(instance: FastifyInstance) {
+  const app = instance.withTypeProvider<ZodTypeProvider>();
+  app.post(
+    routes.checkIn,
+    { schema: { params: ReferenceParams, response: { 200: AppointmentDetail } } },
+    async (req) => checkInAppointment({ db: app.db, clock: app.clock }, req.params.reference),
+  );
 }

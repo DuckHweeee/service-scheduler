@@ -2,6 +2,7 @@ import { buildApp } from './app.js';
 import { clockFromEnv } from './clock.js';
 import { loadConfig } from './config.js';
 import { createDb } from './db/client.js';
+import { startNoShowSweeper } from './services/no-show-sweeper.js';
 
 const config = loadConfig();
 const db = createDb(config.DATABASE_URL);
@@ -12,7 +13,12 @@ const app = await buildApp({
   corsOrigin: config.CORS_ORIGIN,
 });
 
+// A7: late-arrival no-show sweeper (never in tests)
+const stopSweeper =
+  process.env.NODE_ENV === 'test' ? () => {} : startNoShowSweeper({ db, clock: app.clock, log: app.log });
+
 const shutdown = async (signal: string) => {
+  stopSweeper();
   app.log.info({ signal }, 'shutting down');
   await app.close();
   await db.$client.end();
