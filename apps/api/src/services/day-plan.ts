@@ -84,11 +84,10 @@ export const toServiceSpec = (s: ServiceTypeRow): ServiceSpec => ({
  * (`isWorkingDay: false`); booking turns it into DEALERSHIP_CLOSED.
  */
 export async function resolveDayPlan(db: DbOrTx, clock: Clock, input: DayPlanInput): Promise<DayPlan> {
-  const [dealership, service, vehicle] = await Promise.all([
-    getDealership(db, input.dealershipId),
-    getServiceType(db, input.serviceTypeCode),
-    getVehicle(db, input.vehicleId),
-  ]);
+  // Sequential on purpose: `db` may be a transaction (one connection); pg rejects overlapping queries on one client.
+  const dealership = await getDealership(db, input.dealershipId);
+  const service = await getServiceType(db, input.serviceTypeCode);
+  const vehicle = await getVehicle(db, input.vehicleId);
   if (!dealership) throw notFound('Dealership', input.dealershipId);
   if (!service) throw notFound('Service type', input.serviceTypeCode);
   if (!vehicle) throw notFound('Vehicle', input.vehicleId);
@@ -119,10 +118,8 @@ export async function resolveDayPlan(db: DbOrTx, clock: Clock, input: DayPlanInp
   let sameDay: SameDayDecision | null = null;
   let parts: PartsAvailability | null = null;
   if (isSameDay) {
-    const [p, bays] = await Promise.all([
-      partsAvailability(db, dealership.id, service.code, vehicle.modelName),
-      listBays(db, dealership.id),
-    ]);
+    const p = await partsAvailability(db, dealership.id, service.code, vehicle.modelName);
+    const bays = await listBays(db, dealership.id);
     parts = p;
     sameDay = evaluateSameDay({
       isSameDay: true,
@@ -140,10 +137,25 @@ export async function resolveDayPlan(db: DbOrTx, clock: Clock, input: DayPlanInp
   }
 
   const day = await loadDayContext(db, dealership, input.date, {
-    sameDay: sameDay && !sameDay.blocked ? { earliestStart: sameDay.earliestStart, quotaCap: sameDay.quotaCap } : null,
+    sameDay:
+      sameDay && !sameDay.blocked
+        ? { earliestStart: sameDay.earliestStart, quotaCap: sameDay.quotaCap }
+        : null,
   });
 
-  return { input, dealership, service, vehicle, spec, today, isWorkingDay: working, isSameDay, sameDay, parts, day };
+  return {
+    input,
+    dealership,
+    service,
+    vehicle,
+    spec,
+    today,
+    isWorkingDay: working,
+    isSameDay,
+    sameDay,
+    parts,
+    day,
+  };
 }
 
 /**
@@ -159,9 +171,10 @@ export async function loadAlternatives(
   limit = DEFAULT_ALTERNATIVES_LIMIT,
 ): Promise<AlternativeSlot[]> {
   const lastBookable = addLocalDays(plan.today, BOOKING_HORIZON_DAYS);
-  const dates = [plan.input.date, ...nextWorkingDays(plan.input.date, limit, plan.dealership.workingDays)].filter(
-    (d) => d <= lastBookable,
-  );
+  const dates = [
+    plan.input.date,
+    ...nextWorkingDays(plan.input.date, limit, plan.dealership.workingDays),
+  ].filter((d) => d <= lastBookable);
   const days: DatedDay[] = [];
   for (const date of dates) {
     const p = date === plan.input.date ? plan : await resolveDayPlan(db, clock, { ...plan.input, date });
@@ -175,7 +188,9 @@ export async function loadAlternatives(
 
 const reloadDay = (db: DbOrTx, plan: DayPlan): Promise<DayContext> =>
   loadDayContext(db, plan.dealership, plan.input.date, {
-    sameDay: plan.day.sameDay ? { earliestStart: plan.day.sameDay.earliestStart, quotaCap: plan.day.sameDay.quotaCap } : null,
+    sameDay: plan.day.sameDay
+      ? { earliestStart: plan.day.sameDay.earliestStart, quotaCap: plan.day.sameDay.quotaCap }
+      : null,
   });
 
 // ---------- DTO mappers ----------

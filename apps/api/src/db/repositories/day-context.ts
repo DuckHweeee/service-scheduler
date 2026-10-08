@@ -25,27 +25,26 @@ export const loadDayContext = async (
   const from = toInstant(localDate, 0, tz);
   const to = toInstant(addLocalDays(localDate, 1), 0, tz);
 
-  const [bays, techs, rows] = await Promise.all([
-    listBays(db, dealership.id),
-    listTechnicians(db, dealership.id),
-    db
-      .select({
-        bayId: appointments.serviceBayId,
-        technicianId: appointments.technicianId,
-        channel: appointments.channel,
-        startAt: appointments.startAt,
-        endAt: appointments.endAt,
-      })
-      .from(appointments)
-      .where(
-        and(
-          eq(appointments.dealershipId, dealership.id),
-          eq(appointments.status, 'CONFIRMED'),
-          gte(appointments.startAt, from),
-          lt(appointments.startAt, to),
-        ),
+  // Sequential on purpose: `db` may be a transaction (one connection); pg rejects overlapping queries on one client.
+  const bays = await listBays(db, dealership.id);
+  const techs = await listTechnicians(db, dealership.id);
+  const rows = await db
+    .select({
+      bayId: appointments.serviceBayId,
+      technicianId: appointments.technicianId,
+      channel: appointments.channel,
+      startAt: appointments.startAt,
+      endAt: appointments.endAt,
+    })
+    .from(appointments)
+    .where(
+      and(
+        eq(appointments.dealershipId, dealership.id),
+        eq(appointments.status, 'CONFIRMED'),
+        gte(appointments.startAt, from),
+        lt(appointments.startAt, to),
       ),
-  ]);
+    );
 
   const busyByBay = new Map<string, Interval[]>();
   const busyByTech = new Map<string, Interval[]>();
@@ -83,7 +82,11 @@ export const loadDayContext = async (
       busy: (busyByTech.get(t.id) ?? []).sort(byStart),
     })),
     sameDay: opts.sameDay
-      ? { earliestStart: opts.sameDay.earliestStart, quotaCap: opts.sameDay.quotaCap, sameDayBusy: sameDayBusy.sort(byStart) }
+      ? {
+          earliestStart: opts.sameDay.earliestStart,
+          quotaCap: opts.sameDay.quotaCap,
+          sameDayBusy: sameDayBusy.sort(byStart),
+        }
       : null,
   };
 };
