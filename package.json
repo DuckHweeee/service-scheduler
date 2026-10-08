@@ -7,7 +7,9 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "pnpm -r --parallel --filter ./apps/* dev",
+    "dev": "pnpm --parallel --filter @scheduler/api --filter @scheduler/web dev",
+    "dev:mock": "pnpm --filter @scheduler/web dev",
+    "dev:real": "VITE_USE_MOCKS=false VITE_API_URL=http://localhost:3000 pnpm dev",
     "typecheck": "pnpm -r typecheck && tsc -p e2e/tsconfig.json",
     "lint": "eslint .",
     "format": "prettier --write .",
