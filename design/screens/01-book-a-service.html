@@ -1,0 +1,450 @@
+<!-- Extracted from "Unified Service Scheduler.html" (Claude Design bundle). Design reference only: sc-for/sc-if/{{}} are template directives; the <script type="text/x-dc"> block holds the mock logic. Fonts: Archivo (variable wdth/wght) + IBM Plex Mono from Google Fonts. -->
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Book a service</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style></style>
+<style>
+body{margin:0;background:#EEEFEA}
+a{color:#1F48C9}a:hover{color:#163693}
+button{font:inherit}
+button:focus-visible,a:focus-visible{outline:3px solid #1F48C9;outline-offset:2px}
+button:disabled{cursor:not-allowed}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #EEEFEA; color: #15171A; font-family: 'Archivo', 'Helvetica Neue', Helvetica, sans-serif; font-size: 15px; line-height: 1.45">
+
+<header style="background: #15171A; color: #F4F4F0">
+<div style="max-width: 1280px; margin: 0 auto; padding: 14px 32px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<div style="display: flex; align-items: center; gap: 12px">
+<span aria-hidden="true" style="width: 26px; height: 26px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px">
+<span style="background: #F4F4F0"></span><span style="background: #F4F4F0"></span><span style="background: #F4F4F0"></span><span style="background: #E8803F"></span>
+</span>
+<span style="font-weight: 700; font-stretch: 115%; font-size: 16px; letter-spacing: 0.01em">Unified Service Scheduler</span>
+</div>
+<nav aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 4px">
+<a href="#book" aria-current="page" style="color: #15171A; background: #F4F4F0; text-decoration: none; padding: 10px 14px; font-weight: 600; font-size: 14px">Book service</a>
+<a href="Appointment.dc.html" style="color: #F4F4F0; text-decoration: none; padding: 10px 14px; font-weight: 500; font-size: 14px">My appointments</a>
+<a href="Availability.dc.html" style="color: #F4F4F0; text-decoration: none; padding: 10px 14px; font-weight: 500; font-size: 14px">Service board</a>
+</nav>
+<div style="display: flex; align-items: center; gap: 10px; font-size: 14px">
+<span aria-hidden="true" style="width: 32px; height: 32px; display: grid; place-items: center; background: #2B2E33; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600">LT</span>
+<span>Linh Tran</span>
+</div>
+</div>
+</header>
+
+<main id="book" style="max-width: 1280px; margin: 0 auto; padding: 40px 32px 72px">
+
+<sc-if value="{{showForm}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 10px; max-width: 760px">
+<p style="margin: 0; font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.12em; color: #565B61">NEW APPOINTMENT</p>
+<h1 style="margin: 0; font-size: 46px; line-height: 1.02; font-weight: 800; font-stretch: 125%; letter-spacing: -0.01em; text-wrap: balance">Book a service</h1>
+<p style="margin: 0; font-size: 17px; color: #43474D; text-wrap: pretty">We only confirm a time when a service bay and a technician qualified for the job are both free for the full duration.</p>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; margin-top: 32px">
+
+<div style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+
+<section aria-labelledby="h-vehicle" style="background: #FFFFFF; border: 1px solid #D5D7D0; padding: 24px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; align-items: baseline; gap: 14px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #565B61">01</span>
+<h2 id="h-vehicle" style="margin: 0; font-size: 20px; font-weight: 700; font-stretch: 112%">Vehicle</h2>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 12px">
+<sc-for list="{{vehicles}}" as="v" hint-placeholder-count="2">
+<button type="button" aria-pressed="{{v.pressed}}" sc-camel-on-click="{{v.pick}}" style="{{v.style}}">
+<span style="font-weight: 600; font-size: 16px">{{v.name}}</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #565B61">{{v.meta}}</span>
+</button>
+</sc-for>
+</div>
+</section>
+
+<section aria-labelledby="h-service" style="background: #FFFFFF; border: 1px solid #D5D7D0; padding: 24px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; align-items: baseline; gap: 14px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #565B61">02</span>
+<h2 id="h-service" style="margin: 0; font-size: 20px; font-weight: 700; font-stretch: 112%">Service</h2>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 12px">
+<sc-for list="{{services}}" as="sv" hint-placeholder-count="4">
+<button type="button" aria-pressed="{{sv.pressed}}" sc-camel-on-click="{{sv.pick}}" style="{{sv.style}}">
+<span style="font-weight: 600; font-size: 16px">{{sv.name}}</span>
+<span style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #15171A">{{sv.durLabel}}</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 2px 6px; background: #EEEFEA; color: #43474D">{{sv.skill}}</span>
+</span>
+</button>
+</sc-for>
+</div>
+</section>
+
+<section aria-labelledby="h-dealer" style="background: #FFFFFF; border: 1px solid #D5D7D0; padding: 24px; display: flex; flex-direction: column; gap: 16px">
+<div style="display: flex; align-items: baseline; gap: 14px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #565B61">03</span>
+<h2 id="h-dealer" style="margin: 0; font-size: 20px; font-weight: 700; font-stretch: 112%">Dealership</h2>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 12px">
+<sc-for list="{{dealers}}" as="d" hint-placeholder-count="3">
+<button type="button" aria-pressed="{{d.pressed}}" sc-camel-on-click="{{d.pick}}" style="{{d.style}}">
+<span style="font-weight: 600; font-size: 16px">{{d.name}}</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #565B61">{{d.meta}}</span>
+</button>
+</sc-for>
+</div>
+</section>
+
+<section aria-labelledby="h-time" style="background: #FFFFFF; border: 1px solid #D5D7D0; padding: 24px; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px">
+<div style="display: flex; align-items: baseline; gap: 14px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #565B61">04</span>
+<h2 id="h-time" style="margin: 0; font-size: 20px; font-weight: 700; font-stretch: 112%">Date and time</h2>
+</div>
+<p style="margin: 0; font-size: 13px; color: #565B61">Live availability · {{durLabel}} job</p>
+</div>
+
+<div role="group" aria-label="Date" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(110px, 100%), 1fr)); gap: 8px">
+<sc-for list="{{dates}}" as="dt" hint-placeholder-count="5">
+<button type="button" aria-pressed="{{dt.pressed}}" sc-camel-on-click="{{dt.pick}}" style="{{dt.style}}">
+<span style="font-size: 12px; font-family: 'IBM Plex Mono', monospace; letter-spacing: 0.08em">{{dt.wd}}</span>
+<span style="font-size: 18px; font-weight: 700; font-stretch: 110%">{{dt.day}}</span>
+</button>
+</sc-for>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 18px; font-size: 13px; color: #43474D">
+<span style="display: flex; align-items: center; gap: 8px"><span aria-hidden="true" style="width: 14px; height: 14px; border: 1px solid #C9CBC3; background: #FFFFFF"></span>Bay and technician free</span>
+<span style="display: flex; align-items: center; gap: 8px"><span aria-hidden="true" style="width: 14px; height: 14px; background: #1F48C9"></span>Selected</span>
+<span style="display: flex; align-items: center; gap: 8px"><span aria-hidden="true" style="width: 14px; height: 14px; border: 1px dashed #A9ABA3; background: repeating-linear-gradient(135deg, #F3F3EF 0 3px, #E2E3DC 3px 6px)"></span>Can't cover the full job</span>
+</div>
+
+<div role="group" aria-label="Start time" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px">
+<sc-for list="{{slots}}" as="sl" hint-placeholder-count="15">
+<button type="button" aria-pressed="{{sl.pressed}}" aria-label="{{sl.aria}}" disabled="{{sl.disabled}}" sc-camel-on-click="{{sl.pick}}" style="{{sl.style}}">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 15px; font-weight: 600">{{sl.time}}</span>
+<span style="{{sl.statusStyle}}">{{sl.status}}</span>
+</button>
+</sc-for>
+</div>
+
+<sc-if value="{{noOpen}}" hint-placeholder-val="{{false}}">
+<p style="margin: 0; padding: 12px 14px; background: #FBEDE4; color: #7A2E09; font-size: 14px">No time this day has both a free bay and a qualified technician for the whole job. Try another date or dealership.</p>
+</sc-if>
+</section>
+</div>
+
+<aside aria-labelledby="h-summary" style="flex: 1 1 340px; min-width: 0; background: #15171A; color: #F4F4F0; padding: 28px; display: flex; flex-direction: column; gap: 22px">
+<h2 id="h-summary" style="margin: 0; font-size: 22px; font-weight: 700; font-stretch: 118%">Your booking</h2>
+<dl style="margin: 0; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-direction: column; gap: 2px">
+<dt style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #A9ADB3">VEHICLE</dt>
+<dd style="margin: 0; font-weight: 600">{{sum.vehicle}}</dd>
+</div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<dt style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #A9ADB3">SERVICE</dt>
+<dd style="margin: 0; font-weight: 600">{{sum.service}}</dd>
+</div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<dt style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #A9ADB3">DEALERSHIP</dt>
+<dd style="margin: 0; font-weight: 600">{{sum.dealer}}</dd>
+</div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<dt style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #A9ADB3">WHEN</dt>
+<dd style="margin: 0; font-weight: 600">{{sum.when}}</dd>
+</div>
+</dl>
+
+<div style="border-top: 1px solid #33373D; padding-top: 20px; display: flex; flex-direction: column; gap: 14px">
+<h3 style="margin: 0; font-size: 13px; font-family: 'IBM Plex Mono', monospace; letter-spacing: 0.1em; font-weight: 500; color: #A9ADB3">AVAILABILITY CHECK</h3>
+
+<sc-if value="{{hasSel}}" hint-placeholder-val="{{true}}">
+<ul style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px">
+<li style="display: flex; gap: 12px; align-items: flex-start">
+<svg aria-hidden="true" width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="#9DB4FF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex: none; margin-top: 2px"><polyline points="20 6 9 17 4 12"></polyline></svg>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-weight: 600">Service bay · {{sel.bayName}}</span>
+<span style="font-size: 13px; color: #C3C6CB">{{sel.bayKind}} · free {{sel.window}}</span>
+</div>
+</li>
+<li style="display: flex; gap: 12px; align-items: flex-start">
+<svg aria-hidden="true" width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="#9DB4FF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex: none; margin-top: 2px"><polyline points="20 6 9 17 4 12"></polyline></svg>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-weight: 600">Technician · {{sel.techName}}</span>
+<span style="font-size: 13px; color: #C3C6CB">Qualified: {{sel.skill}} · free {{sel.window}}</span>
+</div>
+</li>
+<li style="display: flex; gap: 12px; align-items: flex-start">
+<svg aria-hidden="true" width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="#9DB4FF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex: none; margin-top: 2px"><polyline points="20 6 9 17 4 12"></polyline></svg>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-weight: 600">Full duration covered</span>
+<span style="font-size: 13px; color: #C3C6CB">{{durLabel}} with no overlapping bookings</span>
+</div>
+</li>
+</ul>
+<p style="margin: 0; font-size: 13px; color: #A9ADB3">Both resources are re-checked and reserved together the moment you confirm.</p>
+<button type="button" sc-camel-on-click="{{confirm}}" disabled="{{checking}}" aria-busy="{{checking}}" style="min-height: 52px; border: 0; background: #E8803F; color: #15171A; font-weight: 700; font-size: 16px; font-stretch: 110%; cursor: pointer; padding: 0 20px">{{confirmLabel}}</button>
+</sc-if>
+
+<sc-if value="{{noSel}}" hint-placeholder-val="{{false}}">
+<p style="margin: 0; font-size: 14px; color: #C3C6CB">Choose an open time to check for a free bay and a qualified technician.</p>
+</sc-if>
+</div>
+</aside>
+</div>
+</sc-if>
+
+<sc-if value="{{confirmed}}" hint-placeholder-val="{{false}}">
+<section aria-labelledby="h-done" style="background: #FFFFFF; border: 1px solid #D5D7D0">
+<div style="background: #15171A; color: #F4F4F0; padding: 36px 36px 32px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px">
+<span style="display: flex; align-items: center; gap: 6px; background: #9DB4FF; color: #0E1A40; font-weight: 700; font-size: 13px; padding: 4px 10px">
+<svg aria-hidden="true" width="14" height="14" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+Confirmed</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: #C3C6CB">{{rec.id}}</span>
+</div>
+<h1 id="h-done" style="margin: 0; font-size: 40px; line-height: 1.05; font-weight: 800; font-stretch: 122%; text-wrap: balance">You're booked for {{rec.dateLong}}, {{rec.start}}</h1>
+<p style="margin: 0; font-size: 16px; color: #C3C6CB">{{rec.service}} at {{rec.dealer}} · {{rec.start}}–{{rec.end}}</p>
+</div>
+
+<div style="padding: 32px 36px; display: flex; flex-direction: column; gap: 28px">
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 12px">
+<div style="border: 1px solid #D5D7D0; padding: 18px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #565B61">CUSTOMER</span>
+<span style="font-weight: 700; font-size: 18px">Linh Tran</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #43474D">CUS-10482</span>
+</div>
+<div style="border: 1px solid #D5D7D0; padding: 18px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #565B61">VEHICLE</span>
+<span style="font-weight: 700; font-size: 18px">{{rec.vehicle}}</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #43474D">{{rec.vehicleMeta}}</span>
+</div>
+<div style="border: 1px solid #D5D7D0; padding: 18px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #565B61">TECHNICIAN</span>
+<span style="font-weight: 700; font-size: 18px">{{rec.tech}}</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #43474D">{{rec.techId}} · {{rec.skill}}</span>
+</div>
+<div style="border: 1px solid #D5D7D0; padding: 18px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #565B61">SERVICE BAY</span>
+<span style="font-weight: 700; font-size: 18px">{{rec.bay}}</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #43474D">{{rec.bayId}} · {{rec.bayKind}}</span>
+</div>
+</div>
+
+<p style="margin: 0; font-size: 15px; color: #43474D; max-width: 640px">Bay and technician are reserved for {{rec.start}}–{{rec.end}}. We'll remind you the day before.</p>
+
+<div style="display: flex; flex-wrap: wrap; gap: 12px">
+<a href="Appointment.dc.html" style="display: inline-flex; align-items: center; min-height: 48px; padding: 0 20px; background: #1F48C9; color: #FFFFFF; text-decoration: none; font-weight: 700">View appointment record</a>
+<button type="button" sc-camel-on-click="{{reset}}" style="min-height: 48px; padding: 0 20px; background: #FFFFFF; color: #15171A; border: 1px solid #15171A; font-weight: 600; cursor: pointer">Book another service</button>
+</div>
+</div>
+</section>
+</sc-if>
+
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:1240}}">
+var VEHICLES = [
+  { id: 'VEH-01', name: '2022 Crossover LX', meta: 'VIN ••••4821 · 51F-238.47' },
+  { id: 'VEH-02', name: '2024 Compact EV', meta: 'VIN ••••0937 · 51H-902.15' }
+];
+var SERVICES = [
+  { id: 'oil', name: 'Oil and filter change', dur: 45, skill: 'General', bays: [0, 1, 2] },
+  { id: 'brake', name: 'Brake pad replacement', dur: 120, skill: 'Brakes', bays: [0, 1, 2] },
+  { id: 'align', name: 'Wheel alignment', dur: 60, skill: 'Alignment', bays: [2] },
+  { id: 'ev', name: 'High-voltage battery check', dur: 90, skill: 'EV high-voltage', bays: [3] }
+];
+var DEALERS = [
+  { id: 'DLR-01', name: 'Northside Service Center', meta: '4 bays · 08:00–17:00' },
+  { id: 'DLR-02', name: 'Riverside Auto Care', meta: '4 bays · 08:00–17:00' },
+  { id: 'DLR-03', name: 'Airport Road Service', meta: '4 bays · 08:00–17:00' }
+];
+var BAYS = [
+  { id: 'BAY-01', name: 'Bay 1', kind: 'General lift' },
+  { id: 'BAY-02', name: 'Bay 2', kind: 'General lift' },
+  { id: 'BAY-03', name: 'Bay 3', kind: 'Alignment rack' },
+  { id: 'BAY-04', name: 'Bay 4', kind: 'EV isolated bay' }
+];
+var TECHS = [
+  { id: 'TEC-01', name: 'An Nguyen', skills: ['General', 'Brakes', 'EV high-voltage'] },
+  { id: 'TEC-02', name: 'Marco Ortiz', skills: ['General', 'Alignment'] },
+  { id: 'TEC-03', name: 'Riya Patel', skills: ['General', 'Brakes'] },
+  { id: 'TEC-04', name: 'Jin Kim', skills: ['General', 'EV high-voltage'] }
+];
+var DAY = 540;
+
+function busyFor(r, seed) {
+  var x = (seed * 97 + r * 31 + 11) % 233, out = [], t = 0;
+  for (var i = 0; i < 10; i++) {
+    x = (x * 73 + 41) % 233; var gap = 30 * (1 + x % 6);
+    x = (x * 73 + 41) % 233; var len = 30 * (1 + x % 3);
+    var st = t + gap; if (st >= DAY) break;
+    var en = Math.min(DAY, st + len); out.push([st, en]); t = en;
+  }
+  return out;
+}
+function isFree(iv, a, b) {
+  for (var i = 0; i < iv.length; i++) { if (!(iv[i][1] <= a || iv[i][0] >= b)) return false; }
+  return true;
+}
+function fmt(m) {
+  var h = 8 + Math.floor(m / 60), mm = m % 60;
+  return (h < 10 ? '0' : '') + h + ':' + (mm < 10 ? '0' : '') + mm;
+}
+function durText(d) {
+  if (d < 60) return d + ' min';
+  var h = Math.floor(d / 60), m = d % 60;
+  return h + ' h' + (m ? ' ' + m + ' min' : '');
+}
+function cardStyle(sel) {
+  return 'text-align: left; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 14px 16px; min-height: 64px; cursor: pointer; color: #15171A; border-radius: 2px; border: 1px solid ' + (sel ? '#1F48C9' : '#C9CBC3') + '; background: ' + (sel ? '#E9EEFC' : '#FFFFFF') + '; box-shadow: ' + (sel ? 'inset 0 0 0 1px #1F48C9' : 'none');
+}
+function dateStyle(sel) {
+  return 'display: flex; flex-direction: column; align-items: flex-start; gap: 0; padding: 10px 12px; min-height: 56px; cursor: pointer; border-radius: 2px; border: 1px solid ' + (sel ? '#15171A' : '#C9CBC3') + '; background: ' + (sel ? '#15171A' : '#FFFFFF') + '; color: ' + (sel ? '#F4F4F0' : '#15171A');
+}
+
+class Component extends DCLogic {
+  check(svc, seed, t) {
+    var a = t, b = t + svc.dur, bay = null, tech = null;
+    for (var i = 0; i < svc.bays.length; i++) {
+      var bi = svc.bays[i];
+      if (isFree(busyFor(bi, seed), a, b)) { bay = BAYS[bi]; break; }
+    }
+    for (var j = 0; j < TECHS.length; j++) {
+      if (TECHS[j].skills.indexOf(svc.skill) === -1) continue;
+      if (isFree(busyFor(4 + j, seed), a, b)) { tech = TECHS[j]; break; }
+    }
+    var status = bay && tech ? 'open' : bay ? 'notech' : tech ? 'nobay' : 'full';
+    return { ok: status === 'open', status: status, bay: bay, tech: tech, t: t };
+  }
+  dates() {
+    var out = [], d = new Date(); d.setHours(0, 0, 0, 0);
+    while (out.length < 5) {
+      d.setDate(d.getDate() + 1);
+      var wd = d.getDay();
+      if (wd !== 0 && wd !== 6) out.push(new Date(d.getTime()));
+    }
+    return out;
+  }
+  renderVals() {
+    var self = this, s = this.state || {};
+    var vehicleId = s.vehicle || 'VEH-01', serviceId = s.service || 'brake', dealerId = s.dealer || 'DLR-01';
+    var dateIdx = s.dateIdx == null ? 0 : s.dateIdx;
+    var phase = s.phase || 'form';
+    var veh = VEHICLES.filter(function (x) { return x.id === vehicleId; })[0];
+    var svc = SERVICES.filter(function (x) { return x.id === serviceId; })[0];
+    var dIdx = 0;
+    DEALERS.forEach(function (x, i) { if (x.id === dealerId) dIdx = i; });
+    var dealer = DEALERS[dIdx];
+    var seed = dIdx * 5 + dateIdx;
+    var dateList = this.dates();
+    var theDate = dateList[dateIdx];
+    var dateLong = theDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+    var change = function (patch) { patch.slot = null; self.setState(patch); };
+
+    var results = [], firstOpen = null;
+    for (var t = 0; t + svc.dur <= DAY; t += 30) {
+      var r = self.check(svc, seed, t);
+      results.push(r);
+      if (r.ok && firstOpen === null) firstOpen = t;
+    }
+    var chosen = s.slot != null ? s.slot : firstOpen;
+    var sel = null;
+    results.forEach(function (r) { if (r.ok && r.t === chosen) sel = r; });
+
+    var slots = results.map(function (r) {
+      var picked = sel && sel.t === r.t;
+      var statusText = { open: 'Available', notech: 'No qualified tech', nobay: 'No bay free', full: 'Fully booked' }[r.status];
+      var base = 'display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 12px; min-height: 58px; text-align: left; border-radius: 2px; ';
+      var style = picked
+        ? base + 'background: #1F48C9; border: 1px solid #1F48C9; color: #FFFFFF; cursor: pointer'
+        : r.ok
+          ? base + 'background: #FFFFFF; border: 1px solid #C9CBC3; color: #15171A; cursor: pointer'
+          : base + 'background: repeating-linear-gradient(135deg, #F3F3EF 0 6px, #E8E9E3 6px 12px); border: 1px dashed #A9ABA3; color: #43474D';
+      var statusStyle = 'font-size: 12px; ' + (picked ? 'color: #DDE5FF' : r.ok ? 'color: #1F48C9' : r.status === 'notech' ? 'color: #8F360B' : 'color: #4D5157');
+      return {
+        time: fmt(r.t), status: statusText, style: style, statusStyle: statusStyle,
+        disabled: !r.ok, pressed: picked ? 'true' : 'false',
+        aria: fmt(r.t) + ' to ' + fmt(r.t + svc.dur) + ', ' + statusText,
+        pick: function () { if (r.ok && phase === 'form') self.setState({ slot: r.t }); }
+      };
+    });
+
+    var window_ = sel ? fmt(sel.t) + '–' + fmt(sel.t + svc.dur) : '';
+
+    var confirm = function () {
+      if (!sel || (self.state && self.state.phase === 'checking')) return;
+      self.setState({ phase: 'checking' });
+      setTimeout(function () {
+        var again = self.check(svc, seed, sel.t);
+        if (!again.ok) { self.setState({ phase: 'form', slot: null }); return; }
+        var ymd = theDate.getFullYear() + ('0' + (theDate.getMonth() + 1)).slice(-2) + ('0' + theDate.getDate()).slice(-2);
+        self.setState({
+          phase: 'done',
+          record: {
+            id: 'APT-' + ymd + '-' + String(1000 + ((seed * 37 + sel.t * 7) % 9000)),
+            dateLong: theDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' }),
+            start: fmt(sel.t), end: fmt(sel.t + svc.dur),
+            service: svc.name, dealer: dealer.name,
+            vehicle: veh.name, vehicleMeta: veh.id + ' · ' + veh.meta,
+            tech: again.tech.name, techId: again.tech.id, skill: svc.skill,
+            bay: again.bay.name, bayId: again.bay.id, bayKind: again.bay.kind
+          }
+        });
+      }, 900);
+    };
+
+    return {
+      showForm: phase !== 'done',
+      confirmed: phase === 'done',
+      checking: phase === 'checking',
+      confirmLabel: phase === 'checking' ? 'Checking bay and technician…' : 'Confirm appointment',
+      durLabel: durText(svc.dur),
+      vehicles: VEHICLES.map(function (v) {
+        var on = v.id === vehicleId;
+        return { name: v.name, meta: v.meta, pressed: on ? 'true' : 'false', style: cardStyle(on), pick: function () { change({ vehicle: v.id }); } };
+      }),
+      services: SERVICES.map(function (x) {
+        var on = x.id === serviceId;
+        return { name: x.name, durLabel: durText(x.dur), skill: 'Needs ' + x.skill, pressed: on ? 'true' : 'false', style: cardStyle(on), pick: function () { change({ service: x.id }); } };
+      }),
+      dealers: DEALERS.map(function (x) {
+        var on = x.id === dealerId;
+        return { name: x.name, meta: x.meta, pressed: on ? 'true' : 'false', style: cardStyle(on), pick: function () { change({ dealer: x.id }); } };
+      }),
+      dates: dateList.map(function (d, i) {
+        var on = i === dateIdx;
+        return {
+          wd: d.toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase(),
+          day: d.getDate() + ' ' + d.toLocaleDateString('en-GB', { month: 'short' }),
+          pressed: on ? 'true' : 'false', style: dateStyle(on),
+          pick: function () { change({ dateIdx: i }); }
+        };
+      }),
+      slots: slots,
+      noOpen: firstOpen === null,
+      hasSel: !!sel,
+      noSel: !sel,
+      sel: sel ? { bayName: sel.bay.name, bayKind: sel.bay.kind, techName: sel.tech.name, skill: svc.skill, window: window_ } : {},
+      sum: {
+        vehicle: veh.name,
+        service: svc.name + ' · ' + durText(svc.dur),
+        dealer: dealer.name,
+        when: sel ? dateLong + ' · ' + window_ : dateLong + ' · pick a time'
+      },
+      confirm: confirm,
+      reset: function () { self.setState({ phase: 'form', slot: null, record: null }); },
+      rec: s.record || {}
+    };
+  }
+}
+</script>
+
+
+</body></html>

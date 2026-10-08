@@ -1,0 +1,201 @@
+<!-- Extracted from "Unified Service Scheduler.html" (Claude Design bundle). Design reference only: sc-for/sc-if/{{}} are template directives; the <script type="text/x-dc"> block holds the mock logic. Fonts: Archivo (variable wdth/wght) + IBM Plex Mono from Google Fonts. -->
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Appointment record</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style></style>
+<style>
+body{margin:0;background:#EEEFEA}
+a{color:#1F48C9}a:hover{color:#163693}
+button{font:inherit}
+button:focus-visible,a:focus-visible{outline:3px solid #1F48C9;outline-offset:2px}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #EEEFEA; color: #15171A; font-family: 'Archivo', 'Helvetica Neue', Helvetica, sans-serif; font-size: 15px; line-height: 1.45">
+
+<header style="background: #15171A; color: #F4F4F0">
+<div style="max-width: 1280px; margin: 0 auto; padding: 14px 32px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<div style="display: flex; align-items: center; gap: 12px">
+<span aria-hidden="true" style="width: 26px; height: 26px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px">
+<span style="background: #F4F4F0"></span><span style="background: #F4F4F0"></span><span style="background: #F4F4F0"></span><span style="background: #E8803F"></span>
+</span>
+<span style="font-weight: 700; font-stretch: 115%; font-size: 16px; letter-spacing: 0.01em">Unified Service Scheduler</span>
+</div>
+<nav aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 4px">
+<a href="Main.dc.html" style="color: #F4F4F0; text-decoration: none; padding: 10px 14px; font-weight: 500; font-size: 14px">Book service</a>
+<a href="#record" aria-current="page" style="color: #15171A; background: #F4F4F0; text-decoration: none; padding: 10px 14px; font-weight: 600; font-size: 14px">My appointments</a>
+<a href="Availability.dc.html" style="color: #F4F4F0; text-decoration: none; padding: 10px 14px; font-weight: 500; font-size: 14px">Service board</a>
+</nav>
+<div style="display: flex; align-items: center; gap: 10px; font-size: 14px">
+<span aria-hidden="true" style="width: 32px; height: 32px; display: grid; place-items: center; background: #2B2E33; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600">LT</span>
+<span>Linh Tran</span>
+</div>
+</div>
+</header>
+
+<main id="record" style="max-width: 1280px; margin: 0 auto; padding: 32px 32px 72px; display: flex; flex-direction: column; gap: 24px">
+
+<nav aria-label="Breadcrumb" style="display: flex; flex-wrap: wrap; gap: 8px; font-size: 14px; color: #565B61">
+<a href="#record">My appointments</a>
+<span aria-hidden="true">/</span>
+<span aria-current="page" style="font-family: 'IBM Plex Mono', monospace; color: #15171A">APT-20261008-0409</span>
+</nav>
+
+<section aria-labelledby="h-appt" style="background: #15171A; color: #F4F4F0; padding: 36px; display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 24px">
+<div style="display: flex; flex-direction: column; gap: 12px; min-width: 0">
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px">
+<span style="display: flex; align-items: center; gap: 6px; background: #9DB4FF; color: #0E1A40; font-weight: 700; font-size: 13px; padding: 4px 10px">
+<svg aria-hidden="true" width="14" height="14" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+Confirmed</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 14px; color: #C3C6CB">APT-20261008-0409</span>
+</div>
+<h1 id="h-appt" style="margin: 0; font-size: 44px; line-height: 1.02; font-weight: 800; font-stretch: 125%; letter-spacing: -0.01em">Brake pad replacement</h1>
+<p style="margin: 0; font-size: 17px; color: #DADCDF">Thursday 8 October 2026 · <span style="font-family: 'IBM Plex Mono', monospace">13:00–15:00</span> · Northside Service Center</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 10px">
+<button type="button" style="min-height: 48px; padding: 0 18px; background: #E8803F; color: #15171A; border: 0; font-weight: 700; cursor: pointer">Add to calendar</button>
+<button type="button" style="min-height: 48px; padding: 0 18px; background: transparent; color: #F4F4F0; border: 1px solid #6B7076; font-weight: 600; cursor: pointer">Reschedule</button>
+<button type="button" style="min-height: 48px; padding: 0 18px; background: transparent; color: #F6B48C; border: 1px solid #6B7076; font-weight: 600; cursor: pointer">Cancel appointment</button>
+</div>
+</section>
+
+<section aria-labelledby="h-assoc" style="display: flex; flex-direction: column; gap: 12px">
+<h2 id="h-assoc" style="margin: 0; font-size: 13px; font-family: 'IBM Plex Mono', monospace; letter-spacing: 0.1em; font-weight: 500; color: #565B61">LINKED TO THIS APPOINTMENT</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 12px">
+
+<article style="background: #FFFFFF; border: 1px solid #D5D7D0; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #565B61">CUSTOMER</span>
+<svg aria-hidden="true" width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="#15171A" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 4-7 8-7s8 3 8 7"></path></svg>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h3 style="margin: 0; font-size: 20px; font-weight: 700; font-stretch: 110%">Linh Tran</h3>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #43474D">CUS-10482</span>
+</div>
+<p style="margin: 0; font-size: 14px; color: #43474D">[Phone] · [Email]</p>
+</article>
+
+<article style="background: #FFFFFF; border: 1px solid #D5D7D0; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #565B61">VEHICLE</span>
+<svg aria-hidden="true" width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="#15171A" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16v-4l2-5h14l2 5v4"></path><path d="M3 16h18"></path><circle cx="7" cy="17" r="2"></circle><circle cx="17" cy="17" r="2"></circle></svg>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h3 style="margin: 0; font-size: 20px; font-weight: 700; font-stretch: 110%">2022 Crossover LX</h3>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #43474D">VEH-01</span>
+</div>
+<p style="margin: 0; font-size: 14px; color: #43474D; font-family: 'IBM Plex Mono', monospace">VIN ••••4821 · 51F-238.47</p>
+</article>
+
+<article style="background: #FFFFFF; border: 1px solid #D5D7D0; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #565B61">TECHNICIAN</span>
+<svg aria-hidden="true" width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="#15171A" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.5-.5-.5-2.5z"></path></svg>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h3 style="margin: 0; font-size: 20px; font-weight: 700; font-stretch: 110%">Riya Patel</h3>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #43474D">TEC-03</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 6px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 3px 7px; background: #E9EEFC; color: #163693; font-weight: 600">Brakes ✓ required</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 3px 7px; background: #EEEFEA; color: #43474D">General</span>
+</div>
+</article>
+
+<article style="background: #FFFFFF; border: 1px solid #D5D7D0; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 8px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #565B61">SERVICE BAY</span>
+<svg aria-hidden="true" width="20" height="20" sc-camel-view-box="0 0 24 24" fill="none" stroke="#15171A" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V9l9-6 9 6v12"></path><path d="M7 21v-8h10v8"></path><path d="M7 17h10"></path></svg>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h3 style="margin: 0; font-size: 20px; font-weight: 700; font-stretch: 110%">Bay 2</h3>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #43474D">BAY-02</span>
+</div>
+<p style="margin: 0; font-size: 14px; color: #43474D">General lift · Northside Service Center</p>
+</article>
+
+</div>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+
+<section aria-labelledby="h-fields" style="flex: 999 1 560px; min-width: 0; background: #FFFFFF; border: 1px solid #D5D7D0">
+<div style="padding: 20px 24px; border-bottom: 1px solid #E4E5DF; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px">
+<h2 id="h-fields" style="margin: 0; font-size: 18px; font-weight: 700; font-stretch: 112%">Appointment record</h2>
+<span style="font-size: 13px; color: #565B61">Stored fields</span>
+</div>
+<div style="overflow-x: auto">
+<sc-raw-table style="width: 100%; border-collapse: collapse; font-size: 14px; min-width: 460px">
+<sc-raw-tbody>
+<sc-raw-tr style="border-bottom: 1px solid #EEEFEA"><sc-raw-th scope="row" style="text-align: left; font-weight: 500; padding: 11px 24px; width: 40%; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #565B61">appointment_id</sc-raw-th><sc-raw-td style="padding: 11px 24px; font-family: 'IBM Plex Mono', monospace; font-size: 13px">APT-20261008-0409</sc-raw-td></sc-raw-tr>
+<sc-raw-tr style="border-bottom: 1px solid #EEEFEA"><sc-raw-th scope="row" style="text-align: left; font-weight: 500; padding: 11px 24px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #565B61">status</sc-raw-th><sc-raw-td style="padding: 11px 24px; font-family: 'IBM Plex Mono', monospace; font-size: 13px">CONFIRMED</sc-raw-td></sc-raw-tr>
+<sc-raw-tr style="border-bottom: 1px solid #EEEFEA"><sc-raw-th scope="row" style="text-align: left; font-weight: 500; padding: 11px 24px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #565B61">customer_id</sc-raw-th><sc-raw-td style="padding: 11px 24px; font-family: 'IBM Plex Mono', monospace; font-size: 13px">CUS-10482</sc-raw-td></sc-raw-tr>
+<sc-raw-tr style="border-bottom: 1px solid #EEEFEA"><sc-raw-th scope="row" style="text-align: left; font-weight: 500; padding: 11px 24px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #565B61">vehicle_id</sc-raw-th><sc-raw-td style="padding: 11px 24px; font-family: 'IBM Plex Mono', monospace; font-size: 13px">VEH-01</sc-raw-td></sc-raw-tr>
+<sc-raw-tr style="border-bottom: 1px solid #EEEFEA"><sc-raw-th scope="row" style="text-align: left; font-weight: 500; padding: 11px 24px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #565B61">technician_id</sc-raw-th><sc-raw-td style="padding: 11px 24px; font-family: 'IBM Plex Mono', monospace; font-size: 13px">TEC-03</sc-raw-td></sc-raw-tr>
+<sc-raw-tr style="border-bottom: 1px solid #EEEFEA"><sc-raw-th scope="row" style="text-align: left; font-weight: 500; padding: 11px 24px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #565B61">service_bay_id</sc-raw-th><sc-raw-td style="padding: 11px 24px; font-family: 'IBM Plex Mono', monospace; font-size: 13px">BAY-02</sc-raw-td></sc-raw-tr>
+<sc-raw-tr style="border-bottom: 1px solid #EEEFEA"><sc-raw-th scope="row" style="text-align: left; font-weight: 500; padding: 11px 24px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #565B61">dealership_id</sc-raw-th><sc-raw-td style="padding: 11px 24px; font-family: 'IBM Plex Mono', monospace; font-size: 13px">DLR-01</sc-raw-td></sc-raw-tr>
+<sc-raw-tr style="border-bottom: 1px solid #EEEFEA"><sc-raw-th scope="row" style="text-align: left; font-weight: 500; padding: 11px 24px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #565B61">service_type</sc-raw-th><sc-raw-td style="padding: 11px 24px; font-family: 'IBM Plex Mono', monospace; font-size: 13px">BRAKE_PAD_REPLACEMENT</sc-raw-td></sc-raw-tr>
+<sc-raw-tr style="border-bottom: 1px solid #EEEFEA"><sc-raw-th scope="row" style="text-align: left; font-weight: 500; padding: 11px 24px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #565B61">start_at</sc-raw-th><sc-raw-td style="padding: 11px 24px; font-family: 'IBM Plex Mono', monospace; font-size: 13px">2026-10-08T13:00:00+07:00</sc-raw-td></sc-raw-tr>
+<sc-raw-tr style="border-bottom: 1px solid #EEEFEA"><sc-raw-th scope="row" style="text-align: left; font-weight: 500; padding: 11px 24px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #565B61">end_at</sc-raw-th><sc-raw-td style="padding: 11px 24px; font-family: 'IBM Plex Mono', monospace; font-size: 13px">2026-10-08T15:00:00+07:00</sc-raw-td></sc-raw-tr>
+<sc-raw-tr style="border-bottom: 1px solid #EEEFEA"><sc-raw-th scope="row" style="text-align: left; font-weight: 500; padding: 11px 24px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #565B61">duration_min</sc-raw-th><sc-raw-td style="padding: 11px 24px; font-family: 'IBM Plex Mono', monospace; font-size: 13px">120</sc-raw-td></sc-raw-tr>
+<sc-raw-tr><sc-raw-th scope="row" style="text-align: left; font-weight: 500; padding: 11px 24px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; color: #565B61">created_at</sc-raw-th><sc-raw-td style="padding: 11px 24px; font-family: 'IBM Plex Mono', monospace; font-size: 13px">2026-10-07T14:02:42+07:00</sc-raw-td></sc-raw-tr>
+</sc-raw-tbody>
+</sc-raw-table>
+</div>
+</section>
+
+<section aria-labelledby="h-hist" style="flex: 1 1 340px; min-width: 0; background: #FFFFFF; border: 1px solid #D5D7D0; padding: 20px 24px 24px; display: flex; flex-direction: column; gap: 18px">
+<h2 id="h-hist" style="margin: 0; font-size: 18px; font-weight: 700; font-stretch: 112%">How it was booked</h2>
+<ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0">
+<li style="display: grid; grid-template-columns: 64px 16px minmax(0, 1fr); gap: 10px; padding-bottom: 16px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #565B61; padding-top: 1px">14:02:09</span>
+<span aria-hidden="true" style="width: 10px; height: 10px; margin-top: 5px; background: #A9ABA3"></span>
+<span style="font-size: 14px">Requested 10:00–12:00</span>
+</li>
+<li style="display: grid; grid-template-columns: 64px 16px minmax(0, 1fr); gap: 10px; padding-bottom: 16px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #565B61; padding-top: 1px">14:02:09</span>
+<span aria-hidden="true" style="width: 10px; height: 10px; margin-top: 5px; background: #C2531A"></span>
+<span style="font-size: 14px">Check failed: no Brakes-qualified technician free for the full window. Five alternatives offered.</span>
+</li>
+<li style="display: grid; grid-template-columns: 64px 16px minmax(0, 1fr); gap: 10px; padding-bottom: 16px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #565B61; padding-top: 1px">14:02:41</span>
+<span aria-hidden="true" style="width: 10px; height: 10px; margin-top: 5px; background: #A9ABA3"></span>
+<span style="font-size: 14px">Customer chose 13:00–15:00</span>
+</li>
+<li style="display: grid; grid-template-columns: 64px 16px minmax(0, 1fr); gap: 10px; padding-bottom: 16px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #565B61; padding-top: 1px">14:02:41</span>
+<span aria-hidden="true" style="width: 10px; height: 10px; margin-top: 5px; background: #1F48C9"></span>
+<span style="font-size: 14px">Check passed: Bay 2 and Riya Patel free 13:00–15:00</span>
+</li>
+<li style="display: grid; grid-template-columns: 64px 16px minmax(0, 1fr); gap: 10px; padding-bottom: 16px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #565B61; padding-top: 1px">14:02:42</span>
+<span aria-hidden="true" style="width: 10px; height: 10px; margin-top: 5px; background: #1F48C9"></span>
+<span style="font-size: 14px">Bay and technician reserved together</span>
+</li>
+<li style="display: grid; grid-template-columns: 64px 16px minmax(0, 1fr); gap: 10px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #565B61; padding-top: 1px">14:02:42</span>
+<span aria-hidden="true" style="width: 10px; height: 10px; margin-top: 5px; background: #15171A"></span>
+<span style="font-size: 14px; font-weight: 600">Appointment record created · confirmation sent</span>
+</li>
+</ol>
+</section>
+
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:1080}}">
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+
+
+</body></html>

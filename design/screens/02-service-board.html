@@ -1,0 +1,221 @@
+<!-- Extracted from "Unified Service Scheduler.html" (Claude Design bundle). Design reference only: sc-for/sc-if/{{}} are template directives; the <script type="text/x-dc"> block holds the mock logic. Fonts: Archivo (variable wdth/wght) + IBM Plex Mono from Google Fonts. -->
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8">
+<title>Service board</title>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<style></style>
+<style>
+body{margin:0;background:#EEEFEA}
+a{color:#1F48C9}a:hover{color:#163693}
+button{font:inherit}
+button:focus-visible,a:focus-visible{outline:3px solid #1F48C9;outline-offset:2px}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #EEEFEA; color: #15171A; font-family: 'Archivo', 'Helvetica Neue', Helvetica, sans-serif; font-size: 15px; line-height: 1.45">
+
+<header style="background: #15171A; color: #F4F4F0">
+<div style="max-width: 1280px; margin: 0 auto; padding: 14px 32px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<div style="display: flex; align-items: center; gap: 12px">
+<span aria-hidden="true" style="width: 26px; height: 26px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px">
+<span style="background: #F4F4F0"></span><span style="background: #F4F4F0"></span><span style="background: #F4F4F0"></span><span style="background: #E8803F"></span>
+</span>
+<span style="font-weight: 700; font-stretch: 115%; font-size: 16px; letter-spacing: 0.01em">Unified Service Scheduler</span>
+</div>
+<nav aria-label="Main" style="display: flex; flex-wrap: wrap; gap: 4px">
+<a href="Main.dc.html" style="color: #F4F4F0; text-decoration: none; padding: 10px 14px; font-weight: 500; font-size: 14px">Book service</a>
+<a href="Appointment.dc.html" style="color: #F4F4F0; text-decoration: none; padding: 10px 14px; font-weight: 500; font-size: 14px">My appointments</a>
+<a href="#board" aria-current="page" style="color: #15171A; background: #F4F4F0; text-decoration: none; padding: 10px 14px; font-weight: 600; font-size: 14px">Service board</a>
+</nav>
+<div style="display: flex; align-items: center; gap: 10px; font-size: 14px">
+<span aria-hidden="true" style="width: 32px; height: 32px; display: grid; place-items: center; background: #2B2E33; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600">SA</span>
+<span>Service advisor</span>
+</div>
+</div>
+</header>
+
+<main id="board" style="max-width: 1280px; margin: 0 auto; padding: 40px 32px 72px; display: flex; flex-direction: column; gap: 28px">
+
+<div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<p style="margin: 0; font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: 0.12em; color: #565B61">NORTHSIDE SERVICE CENTER</p>
+<h1 style="margin: 0; font-size: 44px; line-height: 1.02; font-weight: 800; font-stretch: 125%; letter-spacing: -0.01em">Service board</h1>
+<p style="margin: 0; font-size: 16px; color: #43474D">Bays and technicians for Thursday 8 October, 08:00–17:00</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<button type="button" aria-label="Previous day" style="width: 44px; height: 44px; display: grid; place-items: center; background: #FFFFFF; border: 1px solid #C9CBC3; cursor: pointer; color: #15171A">
+<svg aria-hidden="true" width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+</button>
+<button type="button" style="height: 44px; padding: 0 16px; background: #FFFFFF; border: 1px solid #C9CBC3; cursor: pointer; color: #15171A; font-weight: 600">Today</button>
+<button type="button" aria-label="Next day" style="width: 44px; height: 44px; display: grid; place-items: center; background: #FFFFFF; border: 1px solid #C9CBC3; cursor: pointer; color: #15171A">
+<svg aria-hidden="true" width="18" height="18" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+</button>
+</div>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: 12px">
+<section aria-labelledby="h-req" style="background: #15171A; color: #F4F4F0; padding: 22px; display: flex; flex-direction: column; gap: 10px">
+<h2 id="h-req" style="margin: 0; font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em; font-weight: 500; color: #A9ADB3">INCOMING REQUEST</h2>
+<p style="margin: 0; font-size: 20px; font-weight: 700; font-stretch: 112%">Brake pad replacement</p>
+<p style="margin: 0; font-size: 14px; color: #C3C6CB">Linh Tran · 2022 Crossover LX</p>
+<div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 3px 8px; background: #2B2E33">120 min</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 3px 8px; background: #2B2E33">General lift bay</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 3px 8px; background: #2B2E33">Brakes-qualified tech</span>
+</div>
+</section>
+
+<section aria-labelledby="h-rej" style="background: #FFFFFF; border: 1px solid #D5D7D0; padding: 22px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; gap: 10px">
+<span style="display: grid; place-items: center; width: 24px; height: 24px; background: #FBE5D8; color: #8F360B">
+<svg aria-hidden="true" width="14" height="14" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+</span>
+<h2 id="h-rej" style="margin: 0; font-size: 16px; font-weight: 700">10:00–12:00 rejected</h2>
+</div>
+<p style="margin: 0; font-size: 14px; color: #43474D; text-wrap: pretty">Bay 1 is free, but no Brakes-qualified technician is free for all 120 minutes. An Nguyen is busy from 10:30; Riya Patel until 11:00.</p>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 6px">
+<span style="font-size: 13px; color: #43474D">Alternatives offered</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 3px 7px; border: 1px solid #C9CBC3">11:00</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 3px 7px; border: 1px solid #C9CBC3">11:30</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 3px 7px; border: 1px solid #C9CBC3">12:00</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 3px 7px; border: 1px solid #C9CBC3">12:30</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 3px 7px; border: 1px solid #1F48C9; color: #1F48C9; font-weight: 600">13:00</span>
+</div>
+</section>
+
+<section aria-labelledby="h-ok" style="background: #FFFFFF; border: 1px solid #D5D7D0; padding: 22px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; gap: 10px">
+<span style="display: grid; place-items: center; width: 24px; height: 24px; background: #1F48C9; color: #FFFFFF">
+<svg aria-hidden="true" width="14" height="14" sc-camel-view-box="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+</span>
+<h2 id="h-ok" style="margin: 0; font-size: 16px; font-weight: 700">13:00–15:00 reserved</h2>
+</div>
+<p style="margin: 0; font-size: 14px; color: #43474D; text-wrap: pretty">Bay 2 and Riya Patel are both free for the full window. Both were held in one step and the appointment was written.</p>
+<a href="Appointment.dc.html" style="font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600; align-self: flex-start; padding: 8px 0">APT-20261008-0409 →</a>
+</section>
+</div>
+
+<section aria-label="Bay and technician timeline" style="background: #FFFFFF; border: 1px solid #D5D7D0; padding: 8px 0 0">
+<div style="overflow-x: auto">
+<div style="min-width: 1150px; display: grid; grid-template-columns: 210px repeat(18, minmax(52px, 1fr)); grid-template-rows: 38px 36px repeat(4, 58px) 36px repeat(4, 58px); padding: 0 20px 16px 0">
+
+<span style="grid-row: 1; grid-column: 2 / 4; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #565B61; padding: 10px 0 0 4px">08:00</span>
+<span style="grid-row: 1; grid-column: 4 / 6; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #565B61; padding: 10px 0 0 4px">09:00</span>
+<span style="grid-row: 1; grid-column: 6 / 8; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #565B61; padding: 10px 0 0 4px">10:00</span>
+<span style="grid-row: 1; grid-column: 8 / 10; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #565B61; padding: 10px 0 0 4px">11:00</span>
+<span style="grid-row: 1; grid-column: 10 / 12; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #565B61; padding: 10px 0 0 4px">12:00</span>
+<span style="grid-row: 1; grid-column: 12 / 14; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #565B61; padding: 10px 0 0 4px">13:00</span>
+<span style="grid-row: 1; grid-column: 14 / 16; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #565B61; padding: 10px 0 0 4px">14:00</span>
+<span style="grid-row: 1; grid-column: 16 / 18; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #565B61; padding: 10px 0 0 4px">15:00</span>
+<span style="grid-row: 1; grid-column: 18 / 20; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #565B61; padding: 10px 0 0 4px">16:00</span>
+
+<div aria-hidden="true" style="grid-row: 2 / 12; grid-column: 6 / 10; z-index: 1; border: 2px dashed #C2531A; background: rgba(232, 128, 63, 0.07); display: flex; align-items: flex-start; padding: 6px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; background: #FBE5D8; color: #8F360B; padding: 2px 6px">10:00 · REJECTED</span>
+</div>
+<div aria-hidden="true" style="grid-row: 2 / 12; grid-column: 12 / 16; z-index: 1; border: 2px dashed #1F48C9; background: rgba(31, 72, 201, 0.06); display: flex; align-items: flex-start; padding: 6px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; background: #1F48C9; color: #FFFFFF; padding: 2px 6px">13:00 · RESERVED</span>
+</div>
+
+<span style="grid-row: 2; grid-column: 1; font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #565B61; padding: 12px 20px 0">SERVICE BAYS</span>
+
+<div style="grid-row: 3; grid-column: 1; padding: 8px 20px; display: flex; flex-direction: column; justify-content: center; border-bottom: 1px solid #E4E5DF">
+<span style="font-weight: 700; font-size: 14px">Bay 1</span>
+<span style="font-size: 12px; color: #565B61">General lift</span>
+</div>
+<div style="grid-row: 3; grid-column: 2 / 20; border-bottom: 1px solid #E4E5DF; background-image: linear-gradient(to right, #E4E5DF 1px, transparent 1px); background-size: calc(100% / 18) 100%"></div>
+<div style="grid-row: 3; grid-column: 2 / 5; z-index: 2; margin: 8px 2px; background: #DCDED7; padding: 0 8px; display: flex; align-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap; overflow: hidden">0398 · Oil change</div>
+<div style="grid-row: 3; grid-column: 11 / 14; z-index: 2; margin: 8px 2px; background: #DCDED7; padding: 0 8px; display: flex; align-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap; overflow: hidden">0405 · Inspection</div>
+<div style="grid-row: 3; grid-column: 16 / 19; z-index: 2; margin: 8px 2px; background: #DCDED7; padding: 0 8px; display: flex; align-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap; overflow: hidden">0407 · Tire swap</div>
+
+<div style="grid-row: 4; grid-column: 1; padding: 8px 20px; display: flex; flex-direction: column; justify-content: center; border-bottom: 1px solid #E4E5DF">
+<span style="font-weight: 700; font-size: 14px">Bay 2</span>
+<span style="font-size: 12px; color: #565B61">General lift</span>
+</div>
+<div style="grid-row: 4; grid-column: 2 / 20; border-bottom: 1px solid #E4E5DF; background-image: linear-gradient(to right, #E4E5DF 1px, transparent 1px); background-size: calc(100% / 18) 100%"></div>
+<div style="grid-row: 4; grid-column: 3 / 8; z-index: 2; margin: 8px 2px; background: #DCDED7; padding: 0 8px; display: flex; align-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap; overflow: hidden">0399 · Brake pads</div>
+<div style="grid-row: 4; grid-column: 12 / 16; z-index: 2; margin: 8px 2px; background: #1F48C9; color: #FFFFFF; padding: 0 8px; display: flex; align-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden">0409 · Brake pads · new</div>
+<div style="grid-row: 4; grid-column: 17 / 20; z-index: 2; margin: 8px 2px; background: #DCDED7; padding: 0 8px; display: flex; align-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap; overflow: hidden">0408 · Inspection</div>
+
+<div style="grid-row: 5; grid-column: 1; padding: 8px 20px; display: flex; flex-direction: column; justify-content: center; border-bottom: 1px solid #E4E5DF">
+<span style="font-weight: 700; font-size: 14px">Bay 3</span>
+<span style="font-size: 12px; color: #565B61">Alignment rack</span>
+</div>
+<div style="grid-row: 5; grid-column: 2 / 20; border-bottom: 1px solid #E4E5DF; background-image: linear-gradient(to right, #E4E5DF 1px, transparent 1px); background-size: calc(100% / 18) 100%"></div>
+<div style="grid-row: 5; grid-column: 4 / 6; z-index: 2; margin: 8px 2px; background: #DCDED7; padding: 0 8px; display: flex; align-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap; overflow: hidden">0400 · Alignment</div>
+<div style="grid-row: 5; grid-column: 8 / 13; z-index: 2; margin: 8px 2px; background: #DCDED7; padding: 0 8px; display: flex; align-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap; overflow: hidden">0403 · Suspension</div>
+<div style="grid-row: 5; grid-column: 14 / 16; z-index: 2; margin: 8px 2px; background: #DCDED7; padding: 0 8px; display: flex; align-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap; overflow: hidden">0406 · Alignment</div>
+
+<div style="grid-row: 6; grid-column: 1; padding: 8px 20px; display: flex; flex-direction: column; justify-content: center; border-bottom: 1px solid #E4E5DF">
+<span style="font-weight: 700; font-size: 14px">Bay 4</span>
+<span style="font-size: 12px; color: #565B61">EV isolated bay</span>
+</div>
+<div style="grid-row: 6; grid-column: 2 / 20; border-bottom: 1px solid #E4E5DF; background-image: linear-gradient(to right, #E4E5DF 1px, transparent 1px); background-size: calc(100% / 18) 100%"></div>
+<div style="grid-row: 6; grid-column: 2 / 5; z-index: 2; margin: 8px 2px; background: #DCDED7; padding: 0 8px; display: flex; align-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap; overflow: hidden">0397 · HV check</div>
+<div style="grid-row: 6; grid-column: 13 / 18; z-index: 2; margin: 8px 2px; background: #DCDED7; padding: 0 8px; display: flex; align-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap; overflow: hidden">0404 · HV diagnostics</div>
+
+<span style="grid-row: 7; grid-column: 1; font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.1em; color: #565B61; padding: 12px 20px 0">TECHNICIANS</span>
+
+<div style="grid-row: 8; grid-column: 1; padding: 8px 20px; display: flex; flex-direction: column; justify-content: center; border-bottom: 1px solid #E4E5DF">
+<span style="font-weight: 700; font-size: 14px">An Nguyen</span>
+<span style="font-size: 12px; color: #565B61">Brakes · EV HV · General</span>
+</div>
+<div style="grid-row: 8; grid-column: 2 / 20; border-bottom: 1px solid #E4E5DF; background-image: linear-gradient(to right, #E4E5DF 1px, transparent 1px); background-size: calc(100% / 18) 100%"></div>
+<div style="grid-row: 8; grid-column: 2 / 5; z-index: 2; margin: 8px 2px; background: #DCDED7; padding: 0 8px; display: flex; align-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap; overflow: hidden">0397 · HV check</div>
+<div style="grid-row: 8; grid-column: 7 / 10; z-index: 2; margin: 8px 2px; background: #DCDED7; padding: 0 8px; display: flex; align-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap; overflow: hidden">0401 · Road test</div>
+<div style="grid-row: 8; grid-column: 13 / 18; z-index: 2; margin: 8px 2px; background: #DCDED7; padding: 0 8px; display: flex; align-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap; overflow: hidden">0404 · HV diagnostics</div>
+
+<div style="grid-row: 9; grid-column: 1; padding: 8px 20px; display: flex; flex-direction: column; justify-content: center; border-bottom: 1px solid #E4E5DF">
+<span style="font-weight: 700; font-size: 14px">Marco Ortiz</span>
+<span style="font-size: 12px; color: #565B61">Alignment · General</span>
+</div>
+<div style="grid-row: 9; grid-column: 2 / 20; border-bottom: 1px solid #E4E5DF; background-image: linear-gradient(to right, #E4E5DF 1px, transparent 1px); background-size: calc(100% / 18) 100%"></div>
+<div style="grid-row: 9; grid-column: 4 / 6; z-index: 2; margin: 8px 2px; background: #DCDED7; padding: 0 8px; display: flex; align-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap; overflow: hidden">0400 · Alignment</div>
+<div style="grid-row: 9; grid-column: 8 / 13; z-index: 2; margin: 8px 2px; background: #DCDED7; padding: 0 8px; display: flex; align-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap; overflow: hidden">0403 · Suspension</div>
+<div style="grid-row: 9; grid-column: 14 / 16; z-index: 2; margin: 8px 2px; background: #DCDED7; padding: 0 8px; display: flex; align-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap; overflow: hidden">0406 · Alignment</div>
+
+<div style="grid-row: 10; grid-column: 1; padding: 8px 20px; display: flex; flex-direction: column; justify-content: center; border-bottom: 1px solid #E4E5DF">
+<span style="font-weight: 700; font-size: 14px">Riya Patel</span>
+<span style="font-size: 12px; color: #565B61">Brakes · General</span>
+</div>
+<div style="grid-row: 10; grid-column: 2 / 20; border-bottom: 1px solid #E4E5DF; background-image: linear-gradient(to right, #E4E5DF 1px, transparent 1px); background-size: calc(100% / 18) 100%"></div>
+<div style="grid-row: 10; grid-column: 3 / 8; z-index: 2; margin: 8px 2px; background: #DCDED7; padding: 0 8px; display: flex; align-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap; overflow: hidden">0399 · Brake pads</div>
+<div style="grid-row: 10; grid-column: 12 / 16; z-index: 2; margin: 8px 2px; background: #1F48C9; color: #FFFFFF; padding: 0 8px; display: flex; align-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden">0409 · Brake pads · new</div>
+<div style="grid-row: 10; grid-column: 16 / 19; z-index: 2; margin: 8px 2px; background: #DCDED7; padding: 0 8px; display: flex; align-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap; overflow: hidden">0407 · Tire swap</div>
+
+<div style="grid-row: 11; grid-column: 1; padding: 8px 20px; display: flex; flex-direction: column; justify-content: center; border-bottom: 1px solid #E4E5DF">
+<span style="font-weight: 700; font-size: 14px">Jin Kim</span>
+<span style="font-size: 12px; color: #565B61">EV HV · General</span>
+</div>
+<div style="grid-row: 11; grid-column: 2 / 20; border-bottom: 1px solid #E4E5DF; background-image: linear-gradient(to right, #E4E5DF 1px, transparent 1px); background-size: calc(100% / 18) 100%"></div>
+<div style="grid-row: 11; grid-column: 2 / 5; z-index: 2; margin: 8px 2px; background: #DCDED7; padding: 0 8px; display: flex; align-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap; overflow: hidden">0398 · Oil change</div>
+<div style="grid-row: 11; grid-column: 11 / 14; z-index: 2; margin: 8px 2px; background: #DCDED7; padding: 0 8px; display: flex; align-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap; overflow: hidden">0405 · Inspection</div>
+<div style="grid-row: 11; grid-column: 17 / 20; z-index: 2; margin: 8px 2px; background: #DCDED7; padding: 0 8px; display: flex; align-items: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; white-space: nowrap; overflow: hidden">0408 · Inspection</div>
+
+</div>
+</div>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px; font-size: 13px; color: #43474D">
+<span style="display: flex; align-items: center; gap: 8px"><span aria-hidden="true" style="width: 14px; height: 14px; background: #DCDED7"></span>Booked</span>
+<span style="display: flex; align-items: center; gap: 8px"><span aria-hidden="true" style="width: 14px; height: 14px; background: #1F48C9"></span>New appointment</span>
+<span style="display: flex; align-items: center; gap: 8px"><span aria-hidden="true" style="width: 14px; height: 14px; border: 2px dashed #1F48C9"></span>Window where bay and technician are both free</span>
+<span style="display: flex; align-items: center; gap: 8px"><span aria-hidden="true" style="width: 14px; height: 14px; border: 2px dashed #C2531A"></span>Window that fails the check</span>
+</div>
+
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:1060}}">
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+
+
+</body></html>

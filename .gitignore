@@ -1,0 +1,11 @@
+node_modules/
+dist/
+coverage/
+.pgdata/
+.pgtest/
+.env
+*.log
+.DS_Store
+playwright-report/
+test-results/
+.vite/

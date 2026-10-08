@@ -1,0 +1,28 @@
+{
+  "name": "service-scheduler",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.34.6",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter ./apps/* dev",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "test": "pnpm -r test",
+    "verify": "pnpm typecheck && pnpm lint && pnpm test",
+    "db:up": "pnpm --filter @scheduler/api db:up",
+    "db:migrate": "pnpm --filter @scheduler/api db:migrate",
+    "db:seed": "pnpm --filter @scheduler/api db:seed"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "eslint": "^9.39.0",
+    "globals": "^16.0.0",
+    "prettier": "^3.6.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.0"
+  }
+}
