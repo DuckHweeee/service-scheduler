@@ -81,5 +81,25 @@ verified, what was caught and corrected. Agent prompts are archived verbatim in 
 - **Opus slip, fixed:** root ESLint was linting agents' in-progress worktrees under `.claude/worktrees/`, and Opus's gate
   piped `pnpm verify` into `grep`, which hid the non-zero exit. Fixed the ignore list and switched gates to checking `$?`.
 
+## Wave 2 — A4 booking command (Sonnet, merged 2026-10-08)
+
+- **Delivered:** SPEC §6.1 transaction (advisory lock → idempotency re-check → fresh `resolveDayPlan(tx)` → vehicle overlap →
+  `checkWindow` → conditional parts `UPDATE` → insert + events), `CHECK_FAILED` after rollback, `23P01` mapped by constraint
+  name, list/detail/cancel, history sentences. 46 integration tests incl. 20-way concurrency, same-day quota race, parts race,
+  concurrent idempotency.
+- **The agent's own mutation check found a real bug:** with concurrent requests sharing an `Idempotency-Key`, some got 409
+  (exclusion violation) instead of 200. Fixed by resolving the key in the error path. It also showed the advisory lock is what
+  enforces the same-day quota (no constraint can count across different resources) → documented in ADR-002.
+- **Opus review → one change sent back:** the agent deduplicated `SLOT_REQUESTED` per session, which dropped design 03's
+  "Customer chose 13:00–15:00" line. Sent back with exact expected sentences; the agent fixed it in its own files.
+- **Reported by the agent, fixed by Opus:** `Promise.all` over a transaction client in Opus's `day-plan.ts` (and A1's
+  `loadDayContext`) triggers pg's "already executing a query" deprecation (an error in pg 9). Made both sequential.
+- **Biggest catch of the project so far — the gate itself was broken.** While mutation-testing A4, Opus noticed a deliberately
+  broken run exited **0**. Root cause: `embedded-postgres` imports `async-exit-hook`, which hooks `beforeExit` and calls
+  `process.exit(0)`, overwriting vitest's `process.exitCode = 1`. Every `pnpm verify` so far would have passed even with red
+  tests. Earlier gates were still valid (they were judged on the per-test pass/fail counts, and every run showed 0 failures),
+  but CI would have been blind. Fix in `test/helpers/global-setup.ts` re-applies the exit code; proven with the mutant
+  (exit 1) and the clean tree (exit 0).
+
 ## Parked (decide later)
 - Board "incoming request / rejected / reserved" panels from the mock.

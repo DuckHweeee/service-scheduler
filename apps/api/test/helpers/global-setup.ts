@@ -10,6 +10,14 @@ import { findFreePort, startEmbedded, type EmbeddedInstance } from '../../src/db
 import { migrateDatabase } from '../../src/db/migrate.js';
 import { withDatabase } from './url.js';
 
+// embedded-postgres registers async-exit-hook at import time; on 'beforeExit' it calls process.exit(0), which
+// discards vitest's process.exitCode = 1 — failing test runs would exit 0 and CI/`pnpm verify` would pass.
+// Re-apply the intended exit code. Regression check: break a test and confirm `pnpm --filter @scheduler/api test`
+// exits non-zero.
+const realExit = process.exit.bind(process);
+process.exit = ((code?: number | string | null) =>
+  realExit(!code && process.exitCode ? process.exitCode : code)) as typeof process.exit;
+
 declare module 'vitest' {
   export interface ProvidedContext {
     /** Connection string to a maintenance database on the test server (used for CREATE DATABASE). */
