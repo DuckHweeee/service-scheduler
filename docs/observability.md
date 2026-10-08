@@ -14,10 +14,8 @@ and `src/instrumentation.ts`.
 | `booking_reserve_duration_seconds` | | Wall time of the booking transaction, lock wait included. |
 | `booking_lock_wait_seconds` | | Time to acquire the per-(dealership, day) advisory lock. Reserve time rising together with lock wait means contention on a busy day, not slow queries. |
 | `availability_compute_duration_seconds` | `same_day` | Cost of the availability read model. |
-| `no_show_released_total` | | Appointments released by the no-show sweeper (`Telemetry.noShowReleased(n)`; not yet called, see below). |
+| `no_show_released_total` | | Same-day appointments released as no-shows (by the sweeper or by a late check-in). |
 | `process_*`, `nodejs_*` | | Default Node process metrics. |
-
-`no_show_released_total` is exposed through `getTelemetry().noShowReleased(count)`; wire it in the sweeper once it exists.
 
 ### Example PromQL
 
