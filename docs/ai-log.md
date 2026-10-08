@@ -70,5 +70,14 @@ verified, what was caught and corrected. Agent prompts are archived verbatim in 
   "morning" scenario shows earliest start 11:30, Express labels, the late-arrival notice and Marco Ortiz assigned for an
   oil change (consistent with engine test T10a).
 
+## Wave 2 — A3 read endpoints (Sonnet, merged 2026-10-08)
+
+- **Delivered:** reference, availability (via `resolveDayPlan` + engine — no duplicated rules), board, inventory GET/PUT
+  with contract schemas on every route (so they appear in `/docs`); race-free `PUT` (single guarded `UPDATE`). 21 tests.
+- **Ownership deviation, accepted:** the agent deleted A1's `stubbed route → 501` test, which by construction had to fail
+  once `/dealerships` was implemented. It disclosed this instead of hiding it. Lesson for briefs: temporary scaffolding tests
+  should be marked as such.
+- **Gate — mutation checks:** availability ignoring `sameDay.blocked` → 2 tests fail; board including CANCELLED → 1 fails.
+
 ## Parked (decide later)
 - Board "incoming request / rejected / reserved" panels from the mock.
