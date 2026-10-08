@@ -109,7 +109,9 @@ verified, what was caught and corrected. Agent prompts are archived verbatim in 
   `executablePath` workaround Opus put in the brief after F1.
 - **Opus visual gate:** re-shot board/record/list at 1440 px (no page-level horizontal scroll) — faithful to designs 02/03.
   At 390 px the header wraps to four rows and the day-nav "next" button drops to its own line: usable, not polished →
-  assigned to F3. Opus aligned its own fixture ("Customer chose 13:00–15:00") with the A4 history wording.
+  assigned to F3. Opus aligned its own fixture ("Customer chose 13:00–15:00") with the A4 history wording — and broke `main`
+  for one commit by running only the contracts tests before pushing (a web test asserted the old text). Rule tightened:
+  Opus runs full `pnpm verify` + exit code before every push, no exceptions.
 
 ## Parked (decide later)
 - Board "incoming request / rejected / reserved" panels from the mock.

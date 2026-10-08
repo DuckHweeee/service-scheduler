@@ -38,7 +38,7 @@ describe('Appointment record', () => {
     expect(items.map((li) => li.textContent)).toEqual([
       '14:02:09Requested 10:00–12:00',
       '14:02:09Check failed: no Brakes-qualified technician free for the full window. Five alternatives offered.',
-      '14:02:41Requested 13:00–15:00',
+      '14:02:41Customer chose 13:00–15:00',
       '14:02:41Check passed: Bay 2 and Riya Patel free 13:00–15:00',
       '14:02:42Bay and technician reserved together',
       '14:02:42Appointment record created · confirmation sent',
