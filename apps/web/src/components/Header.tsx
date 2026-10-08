@@ -1,6 +1,6 @@
 import { NavLink, useLocation } from 'react-router-dom';
 import { useCustomer } from '../api/hooks.js';
-import { CUSTOMER_ID } from '../config.js';
+import { CUSTOMER_ID, USE_MOCKS } from '../config.js';
 import styles from './Header.module.css';
 
 const NAV = [
@@ -21,8 +21,8 @@ export function Header() {
   const { search } = useLocation();
   const customer = useCustomer(CUSTOMER_ID);
   const name = customer.data?.fullName ?? 'Linh Tran';
-  // Keep `?mock=` scenario switches while navigating.
-  const mock = new URLSearchParams(search).get('mock');
+  // Keep `?mock=` scenario switches while navigating (mock mode only; the real API ignores them).
+  const mock = USE_MOCKS ? new URLSearchParams(search).get('mock') : null;
   const keep = mock ? `?mock=${encodeURIComponent(mock)}` : '';
 
   return (
@@ -52,7 +52,7 @@ export function Header() {
           <span aria-hidden="true" className={styles.avatar}>
             {initials(name)}
           </span>
-          <span>{name}</span>
+          <span className={styles.userName}>{name}</span>
         </div>
       </div>
     </header>

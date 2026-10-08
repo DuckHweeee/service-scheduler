@@ -103,8 +103,8 @@ function Timeline({
   const techLabelRow = bayLabelRow + bayCount + 1;
 
   const grid: CSSProperties = {
-    minWidth: 210 + cols * 52 + 20,
-    gridTemplateColumns: `210px repeat(${cols}, minmax(52px, 1fr))`,
+    minWidth: `calc(var(--head-w) + ${cols * 52 + 20}px)`,
+    gridTemplateColumns: `var(--head-w) repeat(${cols}, minmax(52px, 1fr))`,
     gridTemplateRows: `38px 36px repeat(${bayCount}, 58px) 36px repeat(${techCount}, 58px)`,
   };
 
@@ -230,6 +230,7 @@ export function BoardScreen() {
               ))}
             </select>
           </label>
+          <div className={styles.dayNav}>
           <button type="button" aria-label="Previous day" className={styles.iconBtn} onClick={() => setPickedDate(addDays(date, -1))}>
             <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="15 18 9 12 15 6" />
@@ -243,6 +244,7 @@ export function BoardScreen() {
               <polyline points="9 18 15 12 9 6" />
             </svg>
           </button>
+          </div>
         </div>
       </div>
 
@@ -263,7 +265,11 @@ export function BoardScreen() {
       {(board.isError || dealerships.isError) && (
         <div role="alert" className={styles.state}>
           <p>{errorMessage(board.error ?? dealerships.error)}</p>
-          <button type="button" className={styles.retry} onClick={() => void board.refetch()}>
+          <button
+            type="button"
+            className={styles.retry}
+            onClick={() => void (dealerships.isError ? dealerships.refetch() : board.refetch())}
+          >
             Try again
           </button>
         </div>

@@ -76,6 +76,10 @@
   color: var(--ink);
   cursor: pointer;
 }
+.dayNav {
+  display: flex;
+  gap: 8px;
+}
 .iconBtn,
 .todayBtn {
   height: 44px;
@@ -152,6 +156,7 @@
   overflow-x: auto;
 }
 .grid {
+  --head-w: 210px;
   display: grid;
   padding: 0 20px 16px 0;
 }
@@ -338,5 +343,37 @@
   }
   .h1 {
     font-size: 34px;
+  }
+  .controls {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .select {
+    width: 100%;
+  }
+  .dayNav {
+    width: 100%;
+  }
+  .todayBtn {
+    flex: 1 1 auto;
+  }
+  .iconBtn {
+    flex: 0 0 56px;
+  }
+  .grid {
+    --head-w: 108px;
+  }
+  .rowHead {
+    padding: 8px 8px 8px 12px;
+  }
+  .section {
+    padding: 12px 12px 0;
+  }
+  .rowName,
+  .rowSub {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }

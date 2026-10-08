@@ -15,6 +15,17 @@
   color: var(--warn-ink);
   font-size: 14px;
 }
+.retry {
+  margin-top: 10px;
+  min-height: 44px;
+  padding: 0 18px;
+  background: var(--paper);
+  border: 1px solid var(--warn-ink);
+  border-radius: var(--radius);
+  color: var(--warn-ink);
+  font-weight: 600;
+  cursor: pointer;
+}
 
 /* ---------- intro ---------- */
 
