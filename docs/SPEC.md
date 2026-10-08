@@ -294,7 +294,8 @@ Availability response:
               "proposed": { "serviceBay": {"id":"BAY-01","name":"Bay 1","bayType":"GENERAL_LIFT"},
                             "technician": {"id":"TEC-02","name":"Marco Ortiz"} } }] }
 ```
-`sameDay` is `null` for future dates. When `sameDay.blocked` is non-null, `slots` is `[]`.
+`sameDay` is `null` for future dates. When `sameDay.blocked` is non-null, `slots` is `[]`. A non-working day is not an
+error for availability: 200 with `isWorkingDay: false` and `slots: []` (and `sameDay: null`).
 `isExpress` on a slot = it is a same-day slot (UI label "Express slot"). `proposed` is a non-binding preview.
 
 ### 6.1 `POST /appointments`
@@ -303,7 +304,8 @@ Body: `{ customerId, vehicleId, dealershipId, serviceTypeCode, date: "YYYY-MM-DD
 Header `Idempotency-Key` (optional): repeating a key returns the original appointment with 200.
 
 Errors: 400 `VALIDATION_ERROR`; 404 `NOT_FOUND`; 409 `SLOT_UNAVAILABLE` (+ `reason: SlotStatus`, `alternatives`);
-409 `VEHICLE_ALREADY_BOOKED`; 409 `PARTS_UNAVAILABLE`; 422 `OUTSIDE_BOOKING_HORIZON`, `OUTSIDE_OPENING_HOURS`,
+409 `VEHICLE_ALREADY_BOOKED`; 409 `PARTS_UNAVAILABLE`; 422 `OUTSIDE_BOOKING_HORIZON`, `DEALERSHIP_CLOSED` (not a working day),
+`OUTSIDE_OPENING_HOURS`,
 `MISALIGNED_START`, `VEHICLE_NOT_OWNED`, `SERVICE_NOT_APPLICABLE`, `SERVICE_NOT_EXPRESS`, `LEAD_TIME_NOT_MET`.
 
 Transaction (ADR-002):
