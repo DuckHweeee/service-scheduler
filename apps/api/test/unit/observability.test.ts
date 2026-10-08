@@ -1,6 +1,6 @@
 import { trace } from '@opentelemetry/api';
 import { tracing } from '@opentelemetry/sdk-node';
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it, vi } from 'vitest';
 import { createMetrics } from '../../src/observability/metrics.js';
 import { createTelemetry } from '../../src/observability/otel-telemetry.js';
 import { getTracing, startTracing, traceLogMixin } from '../../src/observability/tracing.js';
@@ -22,7 +22,15 @@ describe('observability (unit)', () => {
 
   it('withSpan records a span with attributes, and the log mixin carries trace_id/span_id inside it', async () => {
     startTracing({}, { spanProcessors: [new tracing.SimpleSpanProcessor(exporter)] });
-    await new Promise((r) => setTimeout(r, 50)); // NodeSDK finishes registering the provider asynchronously
+    // NodeSDK registers the global provider asynchronously: wait until a probe span records, then drop the probes.
+    await vi.waitFor(() => {
+      const probe = trace.getTracer('probe').startSpan('probe');
+      const recording = probe.isRecording(); // must be read before end(): ended spans never report recording
+      probe.end();
+      expect(recording).toBe(true);
+    });
+    await vi.waitFor(() => expect(exporter.getFinishedSpans().length).toBeGreaterThan(0));
+    exporter.reset();
     const telemetry = createTelemetry(createMetrics(), quietLog);
     let mixin: Record<string, string> = {};
     await telemetry.withSpan('booking.reserve', { 'dealership.id': 'DLR-01' }, async (span) => {
@@ -32,8 +40,9 @@ describe('observability (unit)', () => {
       expect(mixin.trace_id).toBe(trace.getActiveSpan()!.spanContext().traceId);
     });
     expect(mixin.span_id).toMatch(/^[0-9a-f]{16}$/);
-    await new Promise((r) => setTimeout(r, 10));
-    const [span] = exporter.getFinishedSpans();
+    // Export can complete asynchronously (resource attributes may be async) — wait instead of sleeping a fixed time.
+    await vi.waitFor(() => expect(exporter.getFinishedSpans().map((s) => s.name)).toContain('booking.reserve'));
+    const span = exporter.getFinishedSpans().find((s) => s.name === 'booking.reserve');
     expect(span!.name).toBe('booking.reserve');
     expect(span!.attributes).toMatchObject({ 'dealership.id': 'DLR-01', 'booking.outcome': 'created' });
   });

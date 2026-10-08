@@ -142,5 +142,20 @@ verified, what was caught and corrected. Agent prompts are archived verbatim in 
   changed the seed to ~30% bay utilisation with a 50% per-technician cap and updated SPEC §7; after re-seeding every
   service shows a realistic mix (e.g. brake 6 available / 9 rejected for mixed reasons).
 
+## Wave 3 — F3 web on real API + e2e (Sonnet, merged 2026-10-08)
+
+- **Delivered:** real-API mode with retry panels, 390 px header (≤ 2 rows) and board polish, Playwright e2e with its own
+  stack (ephemeral embedded Postgres + API with pinned `CLOCK_OVERRIDE` + Vite, browser clock pinned to match), 13 specs
+  incl. screenshots at 1440/390 px regenerated into `docs/screenshots/`. `PW_CHROME_PATH` supports this macOS 12 machine.
+- **Correctly blocked, then unblocked by integration:** the agent could not exercise Check in because A7 had not merged into
+  its branch; instead of faking it, the spec probed for a 501 and skipped. After merging both on `main`, Opus ran
+  `pnpm e2e`: 13/13 green including Check in.
+- **Merge:** `pnpm-lock.yaml` conflicted (A5 and F3 both added dependencies); resolved by pnpm, confirmed with
+  `pnpm install --frozen-lockfile`.
+- **Flakiness work (Opus):** web suites got 20 s test timeouts and a 5 s Testing Library async timeout (they had timed out at
+  load average 242). A5's tracing unit test slept fixed 50/10 ms waiting for asynchronous SDK registration/export and failed
+  under load; replaced with `vi.waitFor` on the real condition. Opus's first rewrite was itself wrong — it read
+  `isRecording()` *after* `span.end()`, which is always false — caught because it failed deterministically; fixed; 6/6 runs green.
+
 ## Parked (decide later)
 - Board "incoming request / rejected / reserved" panels from the mock.
