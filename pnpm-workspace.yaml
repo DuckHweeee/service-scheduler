@@ -4,3 +4,9 @@ packages:
 onlyBuiltDependencies:
   - esbuild
   - msw
+  # postinstall hydrates the ICU dylib symlinks; without it Postgres fails to start (reported by A1)
+  - embedded-postgres
+  - '@embedded-postgres/darwin-x64'
+  - '@embedded-postgres/darwin-arm64'
+  - '@embedded-postgres/linux-x64'
+  - '@embedded-postgres/linux-arm64'

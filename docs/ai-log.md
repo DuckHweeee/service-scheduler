@@ -42,5 +42,21 @@ verified, what was caught and corrected. Agent prompts are archived verbatim in 
 - **Opus slip, fixed:** a `git add -A` in the main checkout staged the agents' worktrees (`.claude/worktrees/`) as embedded
   repos; amended before push and added to `.gitignore`.
 
+## Wave 1 — A1 API foundation (Sonnet, merged 2026-10-08)
+
+- **Delivered:** config, RFC 7807 error handler (DomainError, zod, `23P01` → 409, 404, safe 500), request ids, health,
+  Swagger, SPEC §4 schema with a hand-written constraints migration, `time.ts` (DST-tested), repositories incl.
+  `loadDayContext` and `partsAvailability`, deterministic seed, embedded-Postgres test harness (ephemeral instance on a
+  random port + per-file template clones). 45 tests.
+- **The agent found a real defect in an Opus-owned file:** pnpm 10 blocks dependency build scripts by default, so
+  `@embedded-postgres/*`'s postinstall (ICU dylib symlinks) never ran → Postgres could not start on a fresh clone. It
+  worked around it locally, did *not* edit the Opus-owned file, and reported it. Opus confirmed (`libicudata.77.dylib`
+  symlink missing), added the packages to `onlyBuiltDependencies`, and verified with a clean `rm -rf node_modules` reinstall.
+- **Integration check A1 × A2 (Opus):** after merging both, `db:seed` ran the background load through the real engine:
+  858 appointments, 50–51% bay utilisation per dealership-day, zero constraint violations — the two independently built
+  halves fitted on the first run because both coded against the Wave 0 `types.ts`.
+- **Opus glue for W2:** `services/day-plan.ts` (plan resolution, alternatives, DTO mappers) with 6 integration tests.
+  Opus's own test initially failed — the expected horizon date assumed October has 30 days; the code was right.
+
 ## Parked (decide later)
 - Board "incoming request / rejected / reserved" panels from the mock.

@@ -19,7 +19,8 @@ Read before any work: `docs/SPEC.md` (the contract) and your work package in `do
 ## Hard rules
 1. Only touch files your work package **Owns**. Need something elsewhere → stop and report it.
 2. `docs/SPEC.md`, `packages/contracts/**`, `apps/api/src/domain/availability/types.ts`, `apps/api/src/domain/errors.ts`,
-   `apps/api/src/clock.ts`, `apps/api/src/routes/index.ts`, `apps/api/src/types/**` are Opus-owned: read-only for agents.
+   `apps/api/src/clock.ts`, `apps/api/src/routes/index.ts`, `apps/api/src/types/**`, `apps/api/src/services/day-plan.ts`,
+   `pnpm-workspace.yaml` are Opus-owned: read-only for agents.
 3. SPEC gap or contradiction → report it, do not invent behaviour.
 4. No new dependencies beyond those already in the package.json files, unless your brief lists them.
 5. Business time comes from `app.clock` (never `new Date()` for decisions). Times inside `src/domain/availability` are

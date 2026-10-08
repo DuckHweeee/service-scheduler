@@ -8,9 +8,17 @@ You are a Sonnet agent implementing **one work package**. Read `CLAUDE.md`, `doc
 probe hardest: correctness under concurrency, the full-duration check, and the audit trail.
 
 ## Building blocks you consume (read-only)
-- `src/services/day-plan.ts` (Opus): `resolveDayPlan(db, clock, { dealershipId, serviceTypeCode, vehicleId, date })`
-  validates existence / applicability / horizon and returns dealership, service, vehicle, same-day decision, parts
-  availability and the `DayContext`; `loadAlternativeDays(...)`; DTO mappers for slots/alternatives.
+- `src/services/day-plan.ts` (Opus, read-only, tested in `test/int/day-plan.test.ts`):
+  - `resolveDayPlan(db | tx, clock, { dealershipId, serviceTypeCode, vehicleId, date }) → DayPlan` — 404s,
+    `SERVICE_NOT_APPLICABLE`, `OUTSIDE_BOOKING_HORIZON`; returns `dealership`, `service`, `vehicle`, `spec`, `today`,
+    `isWorkingDay`, `isSameDay`, `sameDay` (policy decision incl. `blocked`), `parts`, and the engine `day` (DayContext,
+    with `day.sameDay` set iff same-day and not blocked). A non-working day is not an error here.
+  - `loadAlternatives(db, clock, plan, afterStartMin, limit = 5) → AlternativeSlot[]` — re-reads each day; call it
+    outside/after the booking transaction.
+  - DTO mappers: `toSlotDto(plan, slot)`, `toAlternativeDto(tz, datedSlot)`, `toSameDayInfo(plan)`, `localIso(date, min, tz)`,
+    `toServiceSpec(row)`, `BOOKING_HORIZON_DAYS`.
+  - Inside the booking transaction, after taking the advisory lock, call `resolveDayPlan(tx, …)` again to get a fresh
+    `DayContext` (and fresh parts/quota) under the lock.
 - `src/domain/availability` (A2): `checkWindow`, `findAlternatives`.
 - `src/db/repositories/**`, `src/domain/time.ts`, `test/helpers/**` (A1) — read their header comments.
 - `src/domain/errors.ts` `DomainError`.
