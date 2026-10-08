@@ -1,6 +1,7 @@
 // Server-rendered booking-history sentences (SPEC §6.4, design 03). Summaries are derived from the stored event
 // `detail` so old events keep rendering the same way.
 import type { HistoryEntry } from '@scheduler/contracts';
+import { DateTime } from 'luxon';
 import { toOffsetIso } from '../domain/time.js';
 
 export interface EventRow {
@@ -13,6 +14,8 @@ export interface EventRow {
 export interface HistoryContext {
   timezone: string;
   lateGraceMin: number;
+  /** Set on SLOT_REQUESTED events after the first of the session: render as "Customer chose". */
+  laterRequestOf?: { firstDate: string };
 }
 
 const NUMBER_WORDS = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five'];
@@ -56,8 +59,16 @@ const checkFailedReason = (detail: Record<string, unknown>): string => {
 
 export const renderSummary = (type: string, detail: Record<string, unknown>, ctx: HistoryContext): string => {
   switch (type) {
-    case 'SLOT_REQUESTED':
-      return `Requested ${str(detail.startTime)}–${str(detail.endTime)}`;
+    case 'SLOT_REQUESTED': {
+      const range = `${str(detail.startTime)}–${str(detail.endTime)}`;
+      if (!ctx.laterRequestOf) return `Requested ${range}`;
+      const date = str(detail.date);
+      const suffix =
+        date && date !== ctx.laterRequestOf.firstDate
+          ? ` on ${DateTime.fromISO(date, { zone: 'utc' }).setLocale('en').toFormat('ccc d LLL')}`
+          : '';
+      return `Customer chose ${range}${suffix}`;
+    }
     case 'CHECK_FAILED':
       return `Check failed: ${checkFailedReason(detail)} ${alternativesSentence(detail.alternativeCount)}`;
     case 'CHECK_PASSED':

@@ -104,6 +104,7 @@ describe('GET /appointments/{reference}: history', () => {
     expect(detail.history.map((h) => h.type)).toEqual([
       'SLOT_REQUESTED',
       'CHECK_FAILED',
+      'SLOT_REQUESTED',
       'CHECK_PASSED',
       'RESOURCES_RESERVED',
       'APPOINTMENT_CREATED',
@@ -111,6 +112,7 @@ describe('GET /appointments/{reference}: history', () => {
     expect(detail.history.map((h) => h.summary)).toEqual([
       'Requested 10:00–12:00',
       'Check failed: no Brakes-qualified technician free for the full window. Five alternatives offered.',
+      'Customer chose 12:00–14:00',
       'Check passed: Bay 1 and Riya Patel free 12:00–14:00',
       'Bay and technician reserved together',
       'Appointment record created · confirmation sent',

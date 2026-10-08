@@ -122,27 +122,20 @@ export async function createAppointment(
   const startTime = formatLocalTime(startMin);
   const endTime = formatLocalTime(endMin);
 
-  // One SLOT_REQUESTED per booking session (design 03 shows a single "Requested" line for a fail-then-succeed flow).
-  const [already] = await db
-    .select({ id: bookingEvents.id })
-    .from(bookingEvents)
-    .where(and(eq(bookingEvents.sessionId, body.bookingSessionId), eq(bookingEvents.type, 'SLOT_REQUESTED')))
-    .limit(1);
-  if (!already) {
-    await db.insert(bookingEvents).values({
-      sessionId: body.bookingSessionId,
-      type: 'SLOT_REQUESTED',
-      detail: {
-        date: body.date,
-        startTime,
-        endTime,
-        dealershipId: dealership.id,
-        serviceTypeCode: spec.code,
-        vehicleId: vehicle.id,
-      },
-      occurredAt: clock.now(),
-    });
-  }
+  // Every attempt that passes validation is recorded; history renders later ones as "Customer chose ...".
+  await db.insert(bookingEvents).values({
+    sessionId: body.bookingSessionId,
+    type: 'SLOT_REQUESTED',
+    detail: {
+      date: body.date,
+      startTime,
+      endTime,
+      dealershipId: dealership.id,
+      serviceTypeCode: spec.code,
+      vehicleId: vehicle.id,
+    },
+    occurredAt: clock.now(),
+  });
 
   // ---- steps 2-7 ----
   let appointmentId: string;

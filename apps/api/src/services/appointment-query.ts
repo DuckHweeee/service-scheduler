@@ -88,9 +88,12 @@ export async function loadAppointmentDetail(
     ).map(asEvent);
   }
   const ctx = { timezone: tz, lateGraceMin: d.lateGraceMin };
-  const history = [...earlier, ...own]
-    .sort((x, y) => x.occurredAt.getTime() - y.occurredAt.getTime() || x.id - y.id)
-    .map((e) => toHistoryEntry(e, ctx));
+  const ordered = [...earlier, ...own].sort((x, y) => x.occurredAt.getTime() - y.occurredAt.getTime() || x.id - y.id);
+  const firstRequest = ordered.find((e) => e.type === 'SLOT_REQUESTED');
+  const firstDate = typeof firstRequest?.detail.date === 'string' ? firstRequest.detail.date : '';
+  const history = ordered.map((e) =>
+    toHistoryEntry(e, e.type === 'SLOT_REQUESTED' && e !== firstRequest ? { ...ctx, laterRequestOf: { firstDate } } : ctx),
+  );
 
   return {
     reference: a.reference,
