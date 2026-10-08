@@ -7,6 +7,7 @@ import { appointments, bookingEvents, dealerships } from '../db/schema.js';
 import { DomainError, notFound } from '../domain/errors.js';
 import { formatLocalTime, localMinutesOf } from '../domain/time.js';
 import { getAppointmentDetail } from './appointment-query.js';
+import { getTelemetry } from '../observability/telemetry.js';
 import { releaseParts } from './parts-release.js';
 
 type ApptRow = typeof appointments.$inferSelect;
@@ -24,7 +25,13 @@ export async function markLateNoShow(
   const updated = await tx
     .update(appointments)
     .set({ status: 'NO_SHOW' })
-    .where(and(eq(appointments.id, appt.id), eq(appointments.status, 'CONFIRMED'), isNull(appointments.checkedInAt)))
+    .where(
+      and(
+        eq(appointments.id, appt.id),
+        eq(appointments.status, 'CONFIRMED'),
+        isNull(appointments.checkedInAt),
+      ),
+    )
     .returning({ id: appointments.id });
   if (updated.length === 0) return false;
   await releaseParts(tx, appt, now);
@@ -57,7 +64,9 @@ export async function checkInAppointment(
       throw new DomainError(
         'APPOINTMENT_NOT_ACTIVE',
         409,
-        appt.checkedInAt ? `Appointment ${reference} is already checked in` : `Appointment ${reference} is ${appt.status}`,
+        appt.checkedInAt
+          ? `Appointment ${reference} is already checked in`
+          : `Appointment ${reference} is ${appt.status}`,
       );
     }
 
@@ -74,7 +83,13 @@ export async function checkInAppointment(
     const updated = await tx
       .update(appointments)
       .set({ checkedInAt: now })
-      .where(and(eq(appointments.id, appt.id), eq(appointments.status, 'CONFIRMED'), isNull(appointments.checkedInAt)))
+      .where(
+        and(
+          eq(appointments.id, appt.id),
+          eq(appointments.status, 'CONFIRMED'),
+          isNull(appointments.checkedInAt),
+        ),
+      )
       .returning({ id: appointments.id });
     if (updated.length === 0) {
       throw new DomainError('APPOINTMENT_NOT_ACTIVE', 409, `Appointment ${reference} is no longer active`);
@@ -90,6 +105,9 @@ export async function checkInAppointment(
   });
 
   // The NO_SHOW transition is committed above; only now surface the 409.
-  if (lateMessage) throw new DomainError('LATE_ARRIVAL', 409, lateMessage);
+  if (lateMessage) {
+    getTelemetry().noShowReleased(1);
+    throw new DomainError('LATE_ARRIVAL', 409, lateMessage);
+  }
   return getAppointmentDetail(db, reference);
 }

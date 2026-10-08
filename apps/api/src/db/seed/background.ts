@@ -1,4 +1,4 @@
-// Background load (SPEC §7): ~50% bay utilisation of ADVANCE/CONFIRMED appointments for background customers
+// Background load (SPEC §7): ~30% bay utilisation, technicians capped at 50%, of ADVANCE/CONFIRMED appointments for background customers
 // for today + the next 10 working days, generated THROUGH the availability engine so every row is valid.
 import { sql } from 'drizzle-orm';
 import type { Clock } from '../../clock.js';
@@ -23,7 +23,10 @@ export interface BackgroundLoadDeps {
   engine?: SeedEngine;
 }
 
-const TARGET_UTILISATION = 0.5;
+// ~30% of bay-minutes overall, and no technician above half a day, so specialist services (brakes, alignment) still
+// have open slots for the demo. A flat 50% bay target saturated the two Brakes technicians (found in the W3 smoke test).
+const TARGET_UTILISATION = 0.3;
+const MAX_TECHNICIAN_SHARE = 0.5;
 const MAX_ATTEMPTS_PER_DAY = 60;
 const DAYS_AHEAD = 10;
 
@@ -73,6 +76,11 @@ export const seedBackgroundLoad = async (db: DbOrTx, deps: BackgroundLoadDeps): 
         const candidates = engine
           .computeSlots(day, spec)
           .filter((s) => s.status === 'AVAILABLE' && s.proposed !== null)
+          .filter((s) => {
+            const tech = day.technicians.find((t) => t.id === s.proposed!.technicianId);
+            const techBusy = (tech?.busy ?? []).reduce((sum, b) => sum + (b.end - b.start), 0);
+            return techBusy + service.durationMin <= (day.closesAt - day.opensAt) * MAX_TECHNICIAN_SHARE;
+          })
           .filter((s) => toInstant(date, s.start, tz).getTime() > now.getTime())
           .filter((s) => {
             const startMs = toInstant(date, s.start, tz).getTime();

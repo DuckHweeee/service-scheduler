@@ -4,13 +4,18 @@ import type { Clock } from '../clock.js';
 import type { Db } from '../db/client.js';
 import { appointments, dealerships } from '../db/schema.js';
 import { markLateNoShow } from './check-in.js';
+import { getTelemetry } from '../observability/telemetry.js';
 
 export interface SweeperLog {
   info: (obj: object, msg?: string) => void;
   error: (obj: object, msg?: string) => void;
 }
 
-export async function releaseLateSameDay(db: Db, clock: Clock, log?: SweeperLog): Promise<{ released: string[] }> {
+export async function releaseLateSameDay(
+  db: Db,
+  clock: Clock,
+  log?: SweeperLog,
+): Promise<{ released: string[] }> {
   const now = clock.now();
   const candidates = await db
     .select({
@@ -37,11 +42,18 @@ export async function releaseLateSameDay(db: Db, clock: Clock, log?: SweeperLog)
     const won = await db.transaction((tx) => markLateNoShow(tx, c, c.graceMin, now));
     if (won) released.push(c.reference);
   }
-  if (released.length > 0) log?.info({ released }, `no-show sweeper released ${released.length} appointment(s)`);
+  if (released.length > 0) getTelemetry().noShowReleased(released.length);
+  if (released.length > 0)
+    log?.info({ released }, `no-show sweeper released ${released.length} appointment(s)`);
   return { released };
 }
 
-export function startNoShowSweeper(opts: { db: Db; clock: Clock; log?: SweeperLog; intervalMs?: number }): () => void {
+export function startNoShowSweeper(opts: {
+  db: Db;
+  clock: Clock;
+  log?: SweeperLog;
+  intervalMs?: number;
+}): () => void {
   const { db, clock, log, intervalMs = 60_000 } = opts;
   let running = false;
   const timer = setInterval(() => {

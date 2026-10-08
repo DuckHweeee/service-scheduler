@@ -378,7 +378,8 @@ serviceType, technician (skills), serviceBay, parts `[{sku,name,qty}]`, `history
 - Customer `CUS-10482` Linh Tran (+84 90 123 4567, linh.tran@example.com) with `VEH-01` 2022 Crossover LX ICE
   (VIN `KL1CX22LXNB104821`, 51F-238.47) and `VEH-02` 2024 Compact EV EV (VIN `KLEV24CMPRB200937`, 51H-902.15).
   Background customers `CUS-10001..10012`, one vehicle each (mixed models/powertrains, invented VINs).
-- Background load: for each dealership, today and the next 10 working days, ~50% utilisation of `ADVANCE`
+- Background load: for each dealership, today and the next 10 working days, ~30% bay utilisation (no technician above
+  50% of the day — a flat 50% bay target saturated the Brakes technicians and left the demo's default service unbookable) of `ADVANCE`
   confirmed appointments for background customers, generated **through the domain engine** (always valid), PRNG
   seed `42`, relative to the clock. Re-running the seed truncates and rebuilds.
 

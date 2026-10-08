@@ -128,5 +128,19 @@ verified, what was caught and corrected. Agent prompts are archived verbatim in 
   Fixes: (1) pushes are now only ever `pnpm verify … && git push`; (2) harden web test timeouts after F3 merges (F3 owns
   `apps/web` right now — avoiding a merge conflict).
 
+## Wave 3 — A5 observability (Sonnet, merged 2026-10-08) + Opus runtime smoke test
+
+- **Delivered:** prom-client registry and `/metrics` (HTTP histogram by route *pattern*, `booking_attempts_total{outcome,reason,channel}`,
+  reserve and lock-wait histograms, availability timing, no-show counter), OpenTelemetry SDK only when
+  `OTEL_EXPORTER_OTLP_ENDPOINT` is set, manual `booking.reserve` / `availability.compute` spans without PII, pino trace
+  correlation, `docs/observability.md` with PromQL and alerts. Services depend on a vendor-free `Telemetry` interface.
+- **Opus glue:** A5 could not see A7's code, so Opus wired `noShowReleased` into the sweeper and the late check-in path.
+- **Runtime smoke test (first time the real server ran end to end):** booked, conflicted, cancelled over HTTP; `/metrics`
+  and the structured `booking attempt` log line were correct. **It exposed a demo-breaking seed problem no test covered:**
+  the "50% of all bay-minutes" target ignored that wash/EV bays are rarely usable, so general lifts and the two Brakes
+  technicians were saturated — brake pad replacement (the Book screen's default) had 0 of 15 slots on every day. Opus
+  changed the seed to ~30% bay utilisation with a 50% per-technician cap and updated SPEC §7; after re-seeding every
+  service shows a realistic mix (e.g. brake 6 available / 9 rejected for mixed reasons).
+
 ## Parked (decide later)
 - Board "incoming request / rejected / reserved" panels from the mock.
