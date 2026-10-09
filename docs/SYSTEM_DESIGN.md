@@ -60,8 +60,8 @@ The repository is a TypeScript monorepo: `packages/contracts` (zod schemas share
 | **Routes** (`apps/api/src/routes`) | Thin HTTP adapters: zod schemas for params/query/body/response, call one service, return a DTO. |
 | **Availability engine** (`src/domain/availability`) | Pure functions, no I/O: given a dealership-day (bays, technicians, their busy intervals) and a service (duration, required skill, allowed bay types), computes every 30-minute start with a status (`AVAILABLE`, `NO_QUALIFIED_TECHNICIAN`, `NO_BAY`, `FULLY_BOOKED`, `SAME_DAY_QUOTA_REACHED`) and a proposed bay + technician; finds alternatives; evaluates the same-day policy. The heart of requirement 2. |
 | **Day plan** (`src/services/day-plan.ts`) | Glue that resolves a request into engine input: entity lookups, powertrain applicability, booking horizon, same-day decision (lead time, quota, parts), and the `DayContext` loaded from the database. Shared by the availability read model and the booking command so both apply identical rules. |
-| **Booking service** | The write path (§4.2): advisory lock → re-check inside the transaction → reserve parts → insert appointment + audit events → commit. Idempotency key support. |
-| **Cancellation / check-in / no-show sweeper** | State transitions guarded by `UPDATE … WHERE status = 'CONFIRMED'`, releasing resources and parts; late same-day arrivals become `NO_SHOW`. |
+| **Booking service** | The write path (§4.2): advisory lock → re-check inside the transaction → reserve parts → insert appointment + audit events → commit. Idempotency key support: the same key with the same request replays the original (200); with a different request it is refused (422 `IDEMPOTENCY_KEY_REUSED`). |
+| **Cancellation / check-in / no-show sweeper** | State transitions guarded by `UPDATE … WHERE status = 'CONFIRMED'` (cancel also requires not checked in), releasing resources and parts; late same-day arrivals become `NO_SHOW`. |
 | **Board / inventory / reference** | Read models for the advisor timeline, parts stock (standing in for a DMS stock feed) and reference data. |
 | **PostgreSQL** | System of record. Exclusion constraints make overlapping confirmed bookings of the same technician, bay or vehicle **impossible** (ADR-002). `booking_events` is an append-only audit trail. |
 | **Observability** | prom-client metrics, OpenTelemetry tracing, pino JSON logs with request and trace ids — behind a vendor-free `Telemetry` interface. |
@@ -100,8 +100,8 @@ Full DDL: [`SPEC.md` §4](SPEC.md#4-database-postgresql-18).
 ### 4.1 Checking availability (read path)
 
 1. The web calls `GET /dealerships/{id}/availability?serviceType&date&vehicleId`.
-2. `resolveDayPlan` validates the request (404 / 422), decides whether it is a same-day request and, if so, evaluates the
-   same-day policy (express-only service, lead time rounded up to the grid, parts in stock for this vehicle model, quota).
+2. `resolveDayPlan` validates the request (400 for malformed or non-calendar dates, 404 / 422), decides whether it is a same-day request and, if so, evaluates the
+   same-day policy (express-only service, lead time (a started minute counts as a full one) rounded up to the grid, parts in stock for this vehicle model, quota).
 3. `loadDayContext` reads the dealership's bays, technicians and **confirmed** appointments for that local date and turns
    them into busy intervals in local minutes.
 4. The engine returns each start time with a status and a proposed bay + technician (deterministic: least-specialised
@@ -129,7 +129,7 @@ sequenceDiagram
   else not available / parts short / vehicle busy
     A->>P: ROLLBACK
     A->>P: INSERT booking_event CHECK_FAILED (outside the rolled-back tx)
-    A->>P: compute up to 5 alternatives (same day, then next working days)
+    A->>P: compute up to 5 alternatives (same day, then next working days; skips windows where the vehicle is booked)
     A-->>W: 409 problem+json {code, reason, alternatives}
   end
   Note over P: If application logic were ever wrong, the EXCLUDE constraints raise 23P01 → mapped to 409.
@@ -142,7 +142,7 @@ no-double-booking invariant even if the lock were removed (proven by a mutation 
 
 ### 4.3 After booking
 
-- **Cancel** (`POST /appointments/{ref}/cancel`): `CONFIRMED` → `CANCELLED`, parts released, event written; the window is
+- **Cancel** (`POST /appointments/{ref}/cancel`): `CONFIRMED`, not yet started and not checked in → `CANCELLED`, parts released, event written (a checked-in or started appointment is 409 `APPOINTMENT_NOT_CANCELLABLE`); the window is
   immediately bookable again because the constraints only cover `CONFIRMED` rows.
 - **Check-in** (advisor, from the board): records arrival; a same-day booking more than 15 minutes late becomes `NO_SHOW`.
   A 60-second **sweeper** applies the same rule to bookings nobody checked in.
@@ -173,7 +173,7 @@ no-double-booking invariant even if the lock were removed (proven by a mutation 
   (`appointments (dealership_id, start_at)`); at higher scale it can be served from read replicas or cached per
   dealership-day with invalidation on booking events.
 - **Partitioning path:** appointments partition naturally by dealership (and by date); the lock key already follows that shape.
-- **Idempotency:** `Idempotency-Key` makes client retries after timeouts safe (verified under concurrency).
+- **Idempotency:** `Idempotency-Key` makes client retries after timeouts safe (verified under concurrency). A key reused for a different request is rejected (422) rather than replayed, so it can never return someone else's appointment.
 - **Failure isolation:** failed attempts are recorded outside the rolled-back transaction, so the audit trail survives
   failures; `/health/ready` checks the database for orchestrator readiness probes.
 - **Correctness under concurrency is tested**, not assumed: 20-way races for one slot, same-day quota races, parts races,
@@ -239,4 +239,5 @@ Authentication and roles (customer vs advisor); reschedule; notifications (the c
 technician shifts, breaks and absences; buffers between jobs; multi-day jobs; walk-in queue; live DMS integration for
 inventory and customer/vehicle master data; a smarter assignment optimiser (look-ahead to maximise remaining capacity) behind
 the same engine interface; a storage-level same-day quota counter (ADR-002 note); caching the availability read model per
-dealership-day.
+dealership-day; marking vehicle-already-booked slots in the availability grid (today only the 409 alternatives skip them);
+consuming reserved parts on completion; bounding check-in to the appointment day.

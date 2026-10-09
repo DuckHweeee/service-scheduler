@@ -74,7 +74,7 @@ pnpm e2e                 # Playwright: real API + real DB + web (see e2e/README.
 Chromium is unsupported, point it at an installed Chrome:
 `PW_CHROME_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" pnpm e2e`.
 
-What the suites cover (~230 unit/integration tests, 13 e2e specs):
+What the suites cover (≈250 unit/integration tests across contracts, API and web, plus 13 e2e specs):
 
 - **Availability engine** — every rule in the spec's test table (T1–T21: full-duration overlap, back-to-back, skills, bay
   types, assignment preference, same-day lead time/quota/cutoff), property-based tests that re-derive every slot status
@@ -95,16 +95,16 @@ test file gets its own database cloned from a migrated template.
 | Method & path | Purpose |
 |---|---|
 | `GET /api/v1/dealerships/{id}/availability?serviceType&date&vehicleId` | Slot grid for a day: status per 30-min start + proposed bay/technician |
-| `POST /api/v1/appointments` (`Idempotency-Key` optional) | Book: 201, or 409 `SLOT_UNAVAILABLE` with `reason` and up to 5 alternatives |
+| `POST /api/v1/appointments` (`Idempotency-Key` optional) | Book: 201, or 409 `SLOT_UNAVAILABLE` with `reason` and up to 5 alternatives. Same key + same request replays with 200; same key + different request is 422 `IDEMPOTENCY_KEY_REUSED` |
 | `GET /api/v1/appointments/{reference}` | Appointment with customer, vehicle, technician, bay, parts and booking history |
 | `GET /api/v1/appointments?customerId` | Customer's appointments |
-| `POST /api/v1/appointments/{reference}/cancel` | Cancel and free resources |
+| `POST /api/v1/appointments/{reference}/cancel` | Cancel and free resources; 409 `APPOINTMENT_NOT_CANCELLABLE` once started or checked in |
 | `POST /api/v1/appointments/{reference}/check-in` | Advisor check-in; late same-day arrivals are released |
 | `GET /api/v1/dealerships/{id}/board?date` | Day timeline per bay and technician |
 | `GET/PUT /api/v1/dealerships/{id}/inventory[/{sku}]` | Parts stock (stands in for a DMS feed) |
 | `GET /api/v1/dealerships`, `/service-types`, `/customers/{id}`, `/customers/{id}/vehicles` | Reference data |
 
-Errors are RFC 7807 `application/problem+json` with a stable `code`. Full contract: `/docs` or
+Errors are RFC 7807 `application/problem+json` with a stable `code`; dates must be real calendar dates (`2026-11-31` is a 400 `VALIDATION_ERROR`). Full contract: `/docs` or
 [`docs/openapi.yaml`](docs/openapi.yaml).
 
 ## How double booking is prevented
