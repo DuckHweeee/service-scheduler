@@ -30,12 +30,13 @@ API=$BASE/api/v1
 TODAY=2026-10-08
 FUTURE=2026-10-14
 JSON='Content-Type: application/json'
-KEY=walkthrough-$(date +%s)   # a new key per run; a reused key replays the earlier (possibly cancelled) appointment
+KEY=walkthrough-$(date +%s)   # a new key per run; the same key with the same request replays the earlier (possibly cancelled) appointment
 # Extract the first "reference" value from a response without needing jq
 ref() { grep -o '"reference":"[^"]*"' | head -1 | cut -d'"' -f4; }
 ```
 
-The flow cancels what it books, so it can be run again; a fresh `pnpm db:seed` resets everything.
+The flow cancels what it books, except the checked-in appointment in section 6 (a checked-in appointment cannot be cancelled),
+so run `pnpm db:seed` again before repeating it.
 Add `-i` to any command to see status line and headers (`x-request-id`, `content-type: application/problem+json` on errors).
 
 ## 1. Reference data
@@ -64,6 +65,9 @@ curl -s "$API/dealerships/DLR-01/availability?serviceType=OIL_CHANGE&date=2026-1
 
 # Beyond the booking horizon: 422 problem+json, code OUTSIDE_BOOKING_HORIZON
 curl -s "$API/dealerships/DLR-01/availability?serviceType=OIL_CHANGE&date=2026-12-30&vehicleId=VEH-01"
+
+# Not a calendar date: 400 VALIDATION_ERROR
+curl -s "$API/dealerships/DLR-01/availability?serviceType=OIL_CHANGE&date=2026-11-31&vehicleId=VEH-01"
 ```
 
 ## 3. Book, conflict, idempotent replay
@@ -79,6 +83,11 @@ echo $REF    # e.g. APT-20261014-0486
 curl -s -o /dev/null -w '%{http_code}\n' -X POST $API/appointments -H "$JSON" -H "Idempotency-Key: $KEY" -d '{
   "customerId":"CUS-10482","vehicleId":"VEH-01","dealershipId":"DLR-01","serviceTypeCode":"OIL_CHANGE",
   "date":"'$FUTURE'","startTime":"08:00","bookingSessionId":"11111111-1111-4111-8111-111111111111"}'
+
+# Same key, different request (another start time): 422 IDEMPOTENCY_KEY_REUSED, nothing created
+curl -s -X POST $API/appointments -H "$JSON" -H "Idempotency-Key: $KEY" -d '{
+  "customerId":"CUS-10482","vehicleId":"VEH-01","dealershipId":"DLR-01","serviceTypeCode":"OIL_CHANGE",
+  "date":"'$FUTURE'","startTime":"09:00","bookingSessionId":"11111111-1111-4111-8111-111111111111"}'
 
 # Conflict: another customer, same slot => 409 SLOT_UNAVAILABLE with "reason" (e.g. NO_BAY) and up to 5 "alternatives"
 curl -s -X POST $API/appointments -H "$JSON" -d '{
@@ -116,7 +125,7 @@ EV=$(curl -s -X POST $API/appointments -H "$JSON" -d '{
 
 curl -s -X POST $API/appointments/$EV/check-in   # 200, checkedInAt set
 curl -s -X POST $API/appointments/$EV/check-in   # 409 APPOINTMENT_NOT_ACTIVE ("already checked in")
-curl -s -X POST $API/appointments/$EV/cancel     # tidy up: 200 CANCELLED
+curl -s -X POST $API/appointments/$EV/cancel     # 409 APPOINTMENT_NOT_CANCELLABLE: already checked in
 ```
 
 A same-day appointment checked in later than `start + lateGraceMin` is marked `NO_SHOW` and the call returns

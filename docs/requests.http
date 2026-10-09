@@ -6,8 +6,9 @@
 #   CLOCK_OVERRIDE=2026-10-08T09:00:00+07:00 pnpm --filter @scheduler/api start
 # The seed is generated relative to the clock; if you seed on another day, change the two dates below
 # (futureDate must be a working day within the booking horizon, a few working days after "today").
-# The flow cancels what it books. To run it again, first change idemKey below (a reused key replays the old
-# appointment, which is already cancelled).
+# The flow cancels what it books, except the checked-in appointment in section 6 (a checked-in appointment cannot be
+# cancelled). To run it again, re-run `pnpm db:seed` and change idemKey below (the same key with the same request replays
+# the old, already cancelled appointment).
 
 @base = http://localhost:3000
 @api = {{base}}/api/v1
@@ -54,6 +55,10 @@ GET {{api}}/dealerships/DLR-01/availability?serviceType=OIL_CHANGE&date=2026-10-
 # Beyond the booking horizon: 422 problem+json, code OUTSIDE_BOOKING_HORIZON
 GET {{api}}/dealerships/DLR-01/availability?serviceType=OIL_CHANGE&date=2026-12-30&vehicleId=VEH-01
 
+###
+# Not a calendar date: 400 VALIDATION_ERROR
+GET {{api}}/dealerships/DLR-01/availability?serviceType=OIL_CHANGE&date=2026-11-31&vehicleId=VEH-01
+
 ### 3. Book, conflict, idempotent replay ---------------------------------------------------------------
 
 # 201 AppointmentDetail, status CONFIRMED, channel ADVANCE, with technician, serviceBay and history
@@ -87,6 +92,22 @@ Idempotency-Key: {{idemKey}}
   "serviceTypeCode": "OIL_CHANGE",
   "date": "{{futureDate}}",
   "startTime": "08:00",
+  "bookingSessionId": "11111111-1111-4111-8111-111111111111"
+}
+
+###
+# Same key, different request (another start time): 422 IDEMPOTENCY_KEY_REUSED, nothing created
+POST {{api}}/appointments
+Content-Type: {{json}}
+Idempotency-Key: {{idemKey}}
+
+{
+  "customerId": "CUS-10482",
+  "vehicleId": "VEH-01",
+  "dealershipId": "DLR-01",
+  "serviceTypeCode": "OIL_CHANGE",
+  "date": "{{futureDate}}",
+  "startTime": "09:00",
   "bookingSessionId": "11111111-1111-4111-8111-111111111111"
 }
 
@@ -176,7 +197,7 @@ POST {{api}}/appointments/{{evReference}}/check-in
 POST {{api}}/appointments/{{evReference}}/check-in
 
 ###
-# Tidy up so the walkthrough can be re-run: 200 CANCELLED
+# Cancel after check-in: 409 APPOINTMENT_NOT_CANCELLABLE (already checked in)
 POST {{api}}/appointments/{{evReference}}/cancel
 
 ### 7. Inventory and same-day parts --------------------------------------------------------------------
