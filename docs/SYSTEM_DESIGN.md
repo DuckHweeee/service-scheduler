@@ -48,6 +48,8 @@ flowchart LR
   O -- "OTLP/HTTP" --> OTEL
 ```
 
+Rendered copies of the diagrams (for offline/PDF use): [`diagrams/`](diagrams/).
+
 The repository is a TypeScript monorepo: `packages/contracts` (zod schemas shared by API and web), `apps/api`, `apps/web`.
 
 ## 2. Components
@@ -116,7 +118,7 @@ sequenceDiagram
   W->>A: POST /appointments {vehicle, service, dealership, date, startTime, sessionId} + Idempotency-Key
   A->>A: validate (ownership, applicability, horizon, opening hours, grid, same-day lead time)
   A->>P: INSERT booking_event SLOT_REQUESTED
-  A->>P: BEGIN; pg_advisory_xact_lock(dealership:date)
+  A->>P: BEGIN, then pg_advisory_xact_lock(dealership, date)
   A->>P: re-read DayContext + parts + quota (inside the lock)
   A->>A: checkWindow — bay AND qualified technician free for the whole window?
   alt available
