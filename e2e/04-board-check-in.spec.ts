@@ -1,4 +1,3 @@
-import { API } from './support/api.js';
 import { test, expect } from './support/test.js';
 import { dateButton, openRecordFromConfirmation, serviceButton } from './support/ui.js';
 
@@ -29,10 +28,6 @@ test('a same-day booking appears on the board with the Express tag', async ({ pa
 
 test('Check in on the board marks the appointment checked in', async ({ page }) => {
   expect(reference).toMatch(/^APT-/);
-  // The check-in endpoint is owned by work package A7; until it lands the API answers 501.
-  const probe = await fetch(`${API()}/api/v1/appointments/APT-00000000-0000/check-in`, { method: 'POST' });
-  test.skip(probe.status === 501, 'POST /check-in is still the Wave 0 stub (A7)');
-
   await page.goto('/board');
   const block = page.locator(`[data-reference="${reference}"]`).first();
   await block.getByRole('button', { name: /^Check in / }).click();

@@ -178,6 +178,10 @@ verified, what was caught and corrected. Agent prompts are archived verbatim in 
   candidates to cover every start a booking can block). SPEC §5.4 / §6.1 / §6.2 updated, OpenAPI regenerated.
   Remaining review items (check-in not time-bounded, parts never consumed, grid not vehicle-aware) → README limitations.
 - **Gate — mutation check:** source reverted, new tests kept → 8/8 new tests fail, exit 1; restored → `pnpm verify` green.
+- **W4-D1 docs consistency pass (Sonnet):** checked every claim, path, script, port and link in README / SYSTEM_DESIGN /
+  cURL / `.http` against HEAD; fixed stale test counts and documented the new 422 / 400 / 409 rules. It caught a real stale
+  step: the walkthrough's final "tidy up" cancel now returns 409 because that appointment is checked in. It also flagged a
+  dead `test.skip` probe for the Wave 0 check-in stub in e2e, which Opus removed; `pnpm e2e` 13/13 green.
 
 ## Parked (decide later)
 - Board "incoming request / rejected / reserved" panels from the mock.
