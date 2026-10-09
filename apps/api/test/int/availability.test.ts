@@ -128,6 +128,18 @@ describe('GET /dealerships/:id/availability', () => {
     expect(body.slots.every((s) => s.isExpress)).toBe(true);
   });
 
+  it('T15 with seconds: now 09:30:30 → earliest 12:00 (11:30:30 is not on the grid; seconds never round down)', async () => {
+    const body = await ok(await appAt('2026-10-08T09:30:30+07:00'), 'DLR-01', 'OIL_CHANGE', '2026-10-08');
+    expect(body.sameDay?.earliestStartTime).toBe('12:00');
+    expect(body.slots[0]?.startTime).toBe('12:00');
+  });
+
+  it('impossible calendar date → 400 VALIDATION_ERROR, not 500', async () => {
+    const res = await get(app, 'DLR-01', 'OIL_CHANGE', '2026-11-31');
+    expect(res.statusCode).toBe(400);
+    expect(Problem.parse(res.json()).code).toBe('VALIDATION_ERROR');
+  });
+
   it('same-day blocks: not express, parts, past cutoff', async () => {
     const brake = await ok(app, 'DLR-01', 'BRAKE_PAD_REPLACEMENT', '2026-10-08');
     expect(brake.sameDay?.blocked).toBe('SERVICE_NOT_EXPRESS');

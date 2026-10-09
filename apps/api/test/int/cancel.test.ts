@@ -172,6 +172,16 @@ describe('POST /appointments/{reference}/cancel', () => {
     clock.set('2026-10-08T09:10:00+07:00');
   });
 
+  it('a checked-in appointment → 409, stays CONFIRMED (the customer is on site)', async () => {
+    const a = await book({ date: '2026-10-15', startTime: '13:00' });
+    await t.db.update(appointments).set({ checkedInAt: clock.now() }).where(eq(appointments.reference, a.reference));
+    const res = await cancel(a.reference);
+    expect(res.statusCode).toBe(409);
+    expect(Problem.parse(res.json()).code).toBe('APPOINTMENT_NOT_CANCELLABLE');
+    const [row] = await t.db.select().from(appointments).where(eq(appointments.reference, a.reference));
+    expect(row!.status).toBe('CONFIRMED');
+  });
+
   it('a NO_SHOW appointment → 409', async () => {
     const a = await book({ date: '2026-10-15' });
     await t.db.update(appointments).set({ status: 'NO_SHOW' }).where(eq(appointments.reference, a.reference));

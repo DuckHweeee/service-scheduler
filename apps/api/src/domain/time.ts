@@ -64,6 +64,12 @@ export const localMinutesOf = (instant: Date, tz: string): number => {
   return dt.hour * 60 + dt.minute;
 };
 
+/** Like `localMinutesOf`, but any part of a minute counts as a full one (09:30:30 → 09:31): for "no earlier than". */
+export const localMinutesCeilOf = (instant: Date, tz: string): number => {
+  const dt = inZone(instant, tz);
+  return dt.hour * 60 + dt.minute + (dt.second > 0 || dt.millisecond > 0 ? 1 : 0);
+};
+
 export const localToday = (clock: Clock, tz: string): string => localDateOf(clock.now(), tz);
 
 export const addLocalDays = (localDate: string, n: number): string => utcDate(localDate).plus({ days: n }).toFormat('yyyy-MM-dd');

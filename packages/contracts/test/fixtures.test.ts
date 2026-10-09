@@ -6,6 +6,7 @@ import {
   AvailabilityResponse,
   BoardResponse,
   CreateAppointmentRequest,
+  LocalDate,
   Dealership,
   InventoryItem,
   Problem,
@@ -52,4 +53,11 @@ describe('request validation', () => {
   ])('rejects %s', (_name, patch) => {
     expect(CreateAppointmentRequest.safeParse({ ...valid, ...patch }).success).toBe(false);
   });
+});
+
+describe('LocalDate', () => {
+  it.each(['2026-10-08', '2028-02-29', '2026-12-31'])('accepts %s', (d) => expect(LocalDate.safeParse(d).success).toBe(true));
+  it.each(['2027-02-29', '2027-02-30', '2026-04-31', '2026-13-01', '2026-10-8'])('rejects %s', (d) =>
+    expect(LocalDate.safeParse(d).success).toBe(false),
+  );
 });

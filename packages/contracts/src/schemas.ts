@@ -14,7 +14,14 @@ import {
 // ---------- primitives ----------
 
 /** Dealership-local calendar date, `YYYY-MM-DD`. */
-export const LocalDate = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, 'Expected YYYY-MM-DD');
+export const LocalDate = z
+  .string()
+  .regex(/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/, 'Expected YYYY-MM-DD')
+  .refine((s) => {
+    // Reject dates the regex lets through but the calendar does not have (2027-02-30, 2026-04-31).
+    const [y, m, d] = s.split('-').map(Number) as [number, number, number];
+    return new Date(Date.UTC(y, m - 1, d)).getUTCDate() === d;
+  }, 'Not a calendar date');
 /** Dealership-local wall-clock time, `HH:mm` (24h). */
 export const LocalTime = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, 'Expected HH:mm');
 /** ISO 8601 instant with the dealership's UTC offset, e.g. `2026-10-08T13:00:00+07:00`. */

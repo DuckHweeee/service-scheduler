@@ -157,5 +157,27 @@ verified, what was caught and corrected. Agent prompts are archived verbatim in 
   under load; replaced with `vi.waitFor` on the real condition. Opus's first rewrite was itself wrong — it read
   `isRecording()` *after* `span.end()`, which is always false — caught because it failed deterministically; fixed; 6/6 runs green.
 
+## Wave 4 — independent review + fresh-clone run-through (2026-10-09)
+
+- **Fresh clone from GitHub, following only the README:** `corepack enable` → `pnpm install` → `db:up` → migrate → seed →
+  `dev:real`. Health ready, Swagger and `/metrics` up; book 201 → replay 200 → other vehicle 409 `FULLY_BOOKED` with 5
+  alternatives → same vehicle 409 `VEHICLE_ALREADY_BOOKED`; metrics counted each outcome. No README fix needed.
+- **Independent reviewer (Sonnet, read-only, fresh context, told to confirm each finding by experiment):** found no
+  double-booking or parts over-reservation path, and five real defects, all confirmed with a throwaway test:
+  1. `LocalDate` accepted impossible dates (`2027-02-30`) → luxon threw → **500** on board / availability / booking.
+  2. A reused `Idempotency-Key` with a *different* request returned 200 with the original appointment — the client would
+     believe its new booking succeeded, and another customer's key reuse would **disclose the first customer's booking**.
+  3. Cancel ignored check-in (a customer on site could be cancelled and their parts released), and losing a race to a
+     no-show release returned 200 instead of 409.
+  4. Same-day lead time truncated seconds: at 09:30:30 an 11:30 start was accepted 30 s inside the 2 h lead.
+  5. 409 alternatives could offer windows where the same vehicle is already booked (they would then fail with
+     `VEHICLE_ALREADY_BOOKED`).
+- **Opus decisions and fixes:** calendar refine in contracts (→ 400); replay only for an identical request, else new
+  422 `IDEMPOTENCY_KEY_REUSED`; cancel guarded on `checked_in_at IS NULL` with the lost-race path → 409; `nowMin` rounds up
+  a started minute; alternatives post-filtered against the vehicle's confirmed intervals (engine asked for enough extra
+  candidates to cover every start a booking can block). SPEC §5.4 / §6.1 / §6.2 updated, OpenAPI regenerated.
+  Remaining review items (check-in not time-bounded, parts never consumed, grid not vehicle-aware) → README limitations.
+- **Gate — mutation check:** source reverted, new tests kept → 8/8 new tests fail, exit 1; restored → `pnpm verify` green.
+
 ## Parked (decide later)
 - Board "incoming request / rejected / reserved" panels from the mock.

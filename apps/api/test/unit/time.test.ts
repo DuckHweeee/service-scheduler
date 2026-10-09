@@ -6,6 +6,7 @@ import {
   isoWeekday,
   isWorkingDay,
   localDateOf,
+  localMinutesCeilOf,
   localMinutesOf,
   localToday,
   nextWorkingDays,
@@ -42,6 +43,12 @@ describe('instants (no DST)', () => {
     const at = new Date('2026-10-08T18:30:00Z'); // 01:30 next day in HCM
     expect(localDateOf(at, HCM)).toBe('2026-10-09');
     expect(localMinutesOf(at, HCM)).toBe(90);
+  });
+
+  it('localMinutesCeilOf counts a started minute as a full one', () => {
+    expect(localMinutesCeilOf(new Date('2026-10-08T09:30:00+07:00'), HCM)).toBe(570);
+    expect(localMinutesCeilOf(new Date('2026-10-08T09:30:30+07:00'), HCM)).toBe(571);
+    expect(localMinutesCeilOf(new Date('2026-10-08T09:30:00.001+07:00'), HCM)).toBe(571);
   });
 
   it('localToday uses the clock', () => {

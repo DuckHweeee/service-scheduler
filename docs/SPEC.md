@@ -226,6 +226,7 @@ Input: `{ isSameDay, isExpress, partsAvailable, nowMin, leadMin, opensAt, closes
 2. `!isExpress` → `SERVICE_NOT_EXPRESS`.
 3. `!partsAvailable` → `PARTS_UNAVAILABLE`.
 4. `earliestStart` = `nowMin + leadMin` rounded **up** to the slot grid (relative to `opensAt`), never before `opensAt`.
+   `nowMin` itself rounds **up** a started minute (09:30:30 → 571), so seconds never shorten the lead time.
 5. `earliestStart + durationMin > closesAt` → `PAST_CUTOFF`.
 6. `quotaCap = sameDayQuotaCap(bayCount, quotaPct) = max(1, floor(bayCount × quotaPct / 100))`; `quotaPct = 0` → 0
    (same-day disabled ⇒ every slot `SAME_DAY_QUOTA_REACHED`).
@@ -301,12 +302,15 @@ error for availability: 200 with `isWorkingDay: false` and `slots: []` (and `sam
 ### 6.1 `POST /appointments`
 
 Body: `{ customerId, vehicleId, dealershipId, serviceTypeCode, date: "YYYY-MM-DD", startTime: "HH:mm", bookingSessionId: uuid }`.
-Header `Idempotency-Key` (optional): repeating a key returns the original appointment with 200.
+Header `Idempotency-Key` (optional): repeating a key with the same request (customer, vehicle, dealership, service, date,
+start time) returns the original appointment with 200; with a different request → 422 `IDEMPOTENCY_KEY_REUSED`.
+`date` must be a real calendar date (`2026-11-31` → 400 `VALIDATION_ERROR`), here and in every query parameter.
 
 Errors: 400 `VALIDATION_ERROR`; 404 `NOT_FOUND`; 409 `SLOT_UNAVAILABLE` (+ `reason: SlotStatus`, `alternatives`);
 409 `VEHICLE_ALREADY_BOOKED`; 409 `PARTS_UNAVAILABLE`; 422 `OUTSIDE_BOOKING_HORIZON`, `DEALERSHIP_CLOSED` (not a working day),
 `OUTSIDE_OPENING_HOURS`,
-`MISALIGNED_START`, `VEHICLE_NOT_OWNED`, `SERVICE_NOT_APPLICABLE`, `SERVICE_NOT_EXPRESS`, `LEAD_TIME_NOT_MET`.
+`MISALIGNED_START`, `VEHICLE_NOT_OWNED`, `SERVICE_NOT_APPLICABLE`, `SERVICE_NOT_EXPRESS`, `LEAD_TIME_NOT_MET`,
+`IDEMPOTENCY_KEY_REUSED`.
 
 Transaction (ADR-002):
 
@@ -317,7 +321,8 @@ Transaction (ADR-002):
 3. Load `DayContext` (confirmed appointments only, incl. `sameDayBusy` for same-day) **inside the tx**; `checkWindow`.
 4. Vehicle overlap → `VEHICLE_ALREADY_BOOKED`.
 5. Not available → `ROLLBACK`; insert `CHECK_FAILED` (with reason) outside tx; compute alternatives
-   (requested day + next working days within horizon); 409.
+   (requested day + next working days within horizon, skipping windows that overlap the vehicle's own confirmed
+   appointments at any dealership); 409.
 6. Same-day: reserve parts — `UPDATE inventory SET reserved = reserved + qty WHERE … AND on_hand - reserved >= qty`;
    0 rows → `ROLLBACK`, `CHECK_FAILED`, 409 `PARTS_UNAVAILABLE`. Insert `appointment_parts`.
 7. Insert appointment with `proposed` resources + `CHECK_PASSED`, `RESOURCES_RESERVED`, `APPOINTMENT_CREATED`
@@ -326,8 +331,9 @@ Transaction (ADR-002):
 
 ### 6.2 Cancellation
 
-`CONFIRMED` + `start_at > now` → `CANCELLED`, release parts (`reserved -= qty`, `released_at = now`),
-`APPOINTMENT_CANCELLED` event. Already `CANCELLED` → 200 unchanged. Otherwise 409 `APPOINTMENT_NOT_CANCELLABLE`.
+`CONFIRMED` + `start_at > now` + not checked in → `CANCELLED`, release parts (`reserved -= qty`, `released_at = now`),
+`APPOINTMENT_CANCELLED` event. Already `CANCELLED` → 200 unchanged. Otherwise (including a check-in or no-show release
+that commits while the cancel is running) 409 `APPOINTMENT_NOT_CANCELLABLE`.
 
 ### 6.3 Late-arrival policy (same-day only)
 

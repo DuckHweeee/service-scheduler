@@ -48,6 +48,7 @@ components:
             - APPOINTMENT_NOT_ACTIVE
             - LATE_ARRIVAL
             - STOCK_BELOW_RESERVED
+            - IDEMPOTENCY_KEY_REUSED
           type: string
         detail:
           type: string

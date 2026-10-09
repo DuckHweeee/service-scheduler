@@ -120,6 +120,9 @@ describe('GET /dealerships/:id/board', () => {
     const bad = await board('DLR-01', 'not-a-date');
     expect(bad.statusCode).toBe(400);
     expect(Problem.parse(bad.json()).code).toBe('VALIDATION_ERROR');
+    const impossible = await board('DLR-01', '2026-02-31'); // matched the regex and used to 500
+    expect(impossible.statusCode).toBe(400);
+    expect(Problem.parse(impossible.json()).code).toBe('VALIDATION_ERROR');
     const missing = await app.inject({ method: 'GET', url: paths.board('DLR-01') });
     expect(missing.statusCode).toBe(400);
   });

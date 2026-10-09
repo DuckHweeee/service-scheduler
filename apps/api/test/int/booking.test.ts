@@ -168,6 +168,19 @@ describe('POST /appointments: unavailable window', () => {
     expect(failed!.detail).toMatchObject({ reason: 'NO_QUALIFIED_TECHNICIAN', alternativeCount: 5 });
   });
 
+  it("alternatives skip windows where the vehicle already has a booking (any dealership)", async () => {
+    // TEC-01/TEC-03 are busy 09:00-13:00 on 2026-10-12 (above). The vehicle is booked at DLR-02 13:00-15:00, so the
+    // 13:00-14:30 starts at DLR-01 would only fail with VEHICLE_ALREADY_BOOKED.
+    const [v] = await addVehicles(t.db, 1);
+    expect((await post(app, bookingBody({ vehicleId: v!, dealershipId: 'DLR-02', date: '2026-10-12', startTime: '13:00' }))).statusCode).toBe(201);
+    const res = await post(app, bookingBody({ vehicleId: v!, date: '2026-10-12', startTime: '10:00' }));
+    expect(res.statusCode).toBe(409);
+    const alts = problem(res).alternatives!;
+    expect(alts).toHaveLength(5);
+    const clash = alts.filter((a) => a.date === '2026-10-12' && a.startTime > '11:00' && a.startTime < '15:00');
+    expect(clash).toEqual([]);
+  });
+
   it('the whole duration is checked, not just the start (partial overlap rejects)', async () => {
     // TEC-01 and TEC-03 are busy 09:00-13:00 on 2026-10-12; a brake at 08:00 ends 10:00 and overlaps.
     const res = await post(app, bookingBody({ date: '2026-10-12', startTime: '08:00' }));
@@ -221,6 +234,30 @@ describe('POST /appointments: idempotency', () => {
     expect(new Set(results.map((r) => r.json().reference)).size).toBe(1);
     expect(await confirmedCount(t.db, eq(appointments.idempotencyKey, key))).toBe(1);
   });
+
+  it('same Idempotency-Key, different request → 422 IDEMPOTENCY_KEY_REUSED, nothing created', async () => {
+    const [v] = await addVehicles(t.db, 1);
+    const key = `key-${randomUUID()}`;
+    const a = await post(app, bookingBody({ vehicleId: v!, date: '2026-10-16', startTime: '08:00' }), { 'idempotency-key': key });
+    expect(a.statusCode).toBe(201);
+    const before = await confirmedCount(t.db);
+    const b = await post(app, bookingBody({ vehicleId: v!, date: '2026-10-16', startTime: '13:00' }), { 'idempotency-key': key });
+    expect(b.statusCode).toBe(422);
+    expect(problem(b).code).toBe('IDEMPOTENCY_KEY_REUSED');
+    expect(await confirmedCount(t.db)).toBe(before);
+  });
+
+  it("another customer reusing a key gets 422, not the first customer's appointment", async () => {
+    const key = `key-${randomUUID()}`;
+    const [v] = await addVehicles(t.db, 1);
+    const a = await post(app, bookingBody({ vehicleId: v!, date: '2026-10-16', startTime: '10:00' }), { 'idempotency-key': key });
+    expect(a.statusCode).toBe(201);
+    const b = await post(app, bookingBody({ customerId: 'CUS-10001', vehicleId: 'VEH-03', date: '2026-10-16', startTime: '10:00' }), {
+      'idempotency-key': key,
+    });
+    expect(b.statusCode).toBe(422);
+    expect(b.body).not.toContain(a.json().reference);
+  });
 });
 
 describe('POST /appointments: validation', () => {
@@ -244,6 +281,11 @@ describe('POST /appointments: validation', () => {
     expectCode({ vehicleId: 'VEH-02', serviceTypeCode: 'OIL_CHANGE' }, 422, 'SERVICE_NOT_APPLICABLE'));
   it('unknown dealership → 404', () => expectCode({ dealershipId: 'DLR-99' }, 404, 'NOT_FOUND'));
   it('unknown customer → 404', () => expectCode({ customerId: 'CUS-NOPE' }, 404, 'NOT_FOUND'));
+  it('impossible calendar date (2026-11-31) → 400 VALIDATION_ERROR, not 500', async () => {
+    const res = await post(app, bookingBody({ date: '2026-11-31' }));
+    expect(res.statusCode).toBe(400);
+    expect(problem(res).code).toBe('VALIDATION_ERROR');
+  });
   it('malformed body → 400 VALIDATION_ERROR', async () => {
     const res = await post(app, { ...bookingBody(), startTime: '10am' });
     expect(res.statusCode).toBe(400);

@@ -1,6 +1,6 @@
-// SPEC §6.2 cancellation: CONFIRMED + future → CANCELLED, release reserved parts, audit event.
+// SPEC §6.2 cancellation: CONFIRMED + future + not checked in → CANCELLED, release reserved parts, audit event.
 import type { AppointmentDetail } from '@scheduler/contracts';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import type { Clock } from '../clock.js';
 import type { Db } from '../db/client.js';
 import { appointments, bookingEvents } from '../db/schema.js';
@@ -26,14 +26,25 @@ export async function cancelAppointment(
     if (appt.startAt.getTime() <= now.getTime()) {
       throw new DomainError('APPOINTMENT_NOT_CANCELLABLE', 409, `Appointment ${reference} has already started or passed`);
     }
+    if (appt.checkedInAt) {
+      throw new DomainError('APPOINTMENT_NOT_CANCELLABLE', 409, `Appointment ${reference} is already checked in`);
+    }
 
-    // The status guard makes concurrent double-cancels safe: only one UPDATE matches.
+    // The guard makes races safe: only one of concurrent cancels / check-in / no-show release can match.
     const updated = await tx
       .update(appointments)
       .set({ status: 'CANCELLED', cancelledAt: now, cancelReason: reason ?? null })
-      .where(and(eq(appointments.id, appt.id), eq(appointments.status, 'CONFIRMED')))
+      .where(and(eq(appointments.id, appt.id), eq(appointments.status, 'CONFIRMED'), isNull(appointments.checkedInAt)))
       .returning({ id: appointments.id });
-    if (updated.length === 0) return; // lost the race to another cancel/no-show; re-read below decides the outcome
+    if (updated.length === 0) {
+      // Lost a race: another cancel is the idempotent case; a check-in or no-show that committed first wins.
+      const [current] = await tx
+        .select({ status: appointments.status })
+        .from(appointments)
+        .where(eq(appointments.id, appt.id));
+      if (current?.status === 'CANCELLED') return;
+      throw new DomainError('APPOINTMENT_NOT_CANCELLABLE', 409, `Appointment ${reference} changed while cancelling and cannot be cancelled`);
+    }
 
     const released = await releaseParts(tx, appt, now);
 

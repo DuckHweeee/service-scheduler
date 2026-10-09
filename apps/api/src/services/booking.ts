@@ -63,6 +63,25 @@ const findByKey = async (db: Db | Tx, key: string): Promise<AppointmentDetail | 
   return row ? loadAppointmentDetail(db, { id: row.id }) : null;
 };
 
+/**
+ * A repeated key replays the original appointment only for the same request. A different request under the same key
+ * (another slot, or another customer) is a client bug: answering 200 would claim it succeeded and could disclose
+ * someone else's appointment.
+ */
+const replay = (existing: AppointmentDetail, body: CreateAppointmentRequest): BookingResult => {
+  const same =
+    existing.customer.id === body.customerId &&
+    existing.vehicle.id === body.vehicleId &&
+    existing.dealership.id === body.dealershipId &&
+    existing.serviceType.code === body.serviceTypeCode &&
+    existing.localDate === body.date &&
+    existing.startTime === body.startTime;
+  if (!same) {
+    throw new DomainError('IDEMPOTENCY_KEY_REUSED', 422, 'This Idempotency-Key was already used for a different booking request');
+  }
+  return { created: false, appointment: existing };
+};
+
 /** Observability wrapper: one span + one `booking_attempts_total` increment per call, no PII in attributes. */
 export async function createAppointment(
   deps: { db: Db; clock: Clock },
@@ -107,7 +126,7 @@ async function reserveAppointment(
   // ---- step 1: idempotent replay, then validation (no events yet) ----
   if (idempotencyKey) {
     const existing = await findByKey(db, idempotencyKey);
-    if (existing) return { created: false, appointment: existing };
+    if (existing) return replay(existing, body);
   }
 
   const [customer, vehicle] = await Promise.all([getCustomer(db, body.customerId), getVehicle(db, body.vehicleId)]);
@@ -298,13 +317,13 @@ async function reserveAppointment(
   } catch (err) {
     telemetry.observeReserve(reserveElapsed());
     if (err instanceof IdempotentReplay) {
-      return { created: false, appointment: (await loadAppointmentDetail(db, { id: err.appointmentId }))! };
+      return replay((await loadAppointmentDetail(db, { id: err.appointmentId }))!, body);
     }
     if (idempotencyKey && !(err instanceof DomainError)) {
       // A concurrent request with the same key may have won (unique violation, or its own rows tripping an
       // exclusion constraint): the key's original appointment is the answer, not an error.
       const existing = await findByKey(db, idempotencyKey);
-      if (existing) return { created: false, appointment: existing };
+      if (existing) return replay(existing, body);
     }
     let failure: CheckFailure | null = null;
     if (err instanceof CheckFailure) failure = err;

@@ -2,6 +2,7 @@
 // dealership-day for one service + vehicle: entity lookups, applicability, booking horizon, same-day policy (SPEC §5.4)
 // and the engine's DayContext. Booking-specific checks (grid alignment, opening hours, lead time) stay in booking.ts.
 import type { AlternativeSlot, AvailabilitySlot, SameDayInfo } from '@scheduler/contracts';
+import { and, eq, gt, lt } from 'drizzle-orm';
 import type { Clock } from '../clock.js';
 import type { DbOrTx } from '../db/client.js';
 import {
@@ -16,6 +17,7 @@ import {
   type ServiceTypeRow,
   type VehicleRow,
 } from '../db/repositories/index.js';
+import { appointments } from '../db/schema.js';
 import {
   DEFAULT_ALTERNATIVES_LIMIT,
   DEFAULT_STEP_MIN,
@@ -33,7 +35,7 @@ import {
   addLocalDays,
   formatLocalTime,
   isWorkingDay,
-  localMinutesOf,
+  localMinutesCeilOf,
   localToday,
   nextWorkingDays,
   parseLocalTime,
@@ -125,7 +127,7 @@ export async function resolveDayPlan(db: DbOrTx, clock: Clock, input: DayPlanInp
       isSameDay: true,
       isExpress: service.isExpress,
       partsAvailable: p.available,
-      nowMin: localMinutesOf(clock.now(), tz),
+      nowMin: localMinutesCeilOf(clock.now(), tz), // seconds round up: the lead time is a minimum
       leadMin: dealership.sameDayLeadMin,
       opensAt: parseLocalTime(dealership.opensAt),
       closesAt: parseLocalTime(dealership.closesAt),
@@ -181,10 +183,44 @@ export async function loadAlternatives(
     if (p.sameDay?.blocked || !p.isWorkingDay) continue;
     days.push({ date, day: date === plan.input.date ? await reloadDay(db, p) : p.day });
   }
-  return findAlternatives(days, plan.spec, { date: plan.input.date, start: afterStartMin }, limit).map((d) =>
-    toAlternativeDto(plan.dealership.timezone, d),
+  if (days.length === 0) return [];
+
+  // The vehicle's own confirmed bookings (at any dealership) rule a slot out too: offering one would only lead to
+  // 409 VEHICLE_ALREADY_BOOKED. Ask the engine for enough extra candidates to cover every start such a booking can block.
+  const tz = plan.dealership.timezone;
+  const busy = await loadVehicleBusy(
+    db,
+    plan.vehicle.id,
+    toInstant(days[0]!.date, 0, tz),
+    toInstant(addLocalDays(days[days.length - 1]!.date, 1), 0, tz),
   );
+  const blockedStarts = busy.reduce(
+    (n, b) => n + Math.ceil(((b.endAt.getTime() - b.startAt.getTime()) / 60_000 + plan.spec.durationMin) / DEFAULT_STEP_MIN),
+    0,
+  );
+  const overlapsVehicle = ({ date, slot }: DatedSlot): boolean => {
+    const start = toInstant(date, slot.start, tz).getTime();
+    const end = toInstant(date, slot.end, tz).getTime();
+    return busy.some((b) => b.startAt.getTime() < end && start < b.endAt.getTime());
+  };
+  return findAlternatives(days, plan.spec, { date: plan.input.date, start: afterStartMin }, limit + blockedStarts)
+    .filter((d) => !overlapsVehicle(d))
+    .slice(0, limit)
+    .map((d) => toAlternativeDto(tz, d));
 }
+
+const loadVehicleBusy = (db: DbOrTx, vehicleId: string, from: Date, to: Date) =>
+  db
+    .select({ startAt: appointments.startAt, endAt: appointments.endAt })
+    .from(appointments)
+    .where(
+      and(
+        eq(appointments.vehicleId, vehicleId),
+        eq(appointments.status, 'CONFIRMED'),
+        lt(appointments.startAt, to),
+        gt(appointments.endAt, from),
+      ),
+    );
 
 const reloadDay = (db: DbOrTx, plan: DayPlan): Promise<DayContext> =>
   loadDayContext(db, plan.dealership, plan.input.date, {

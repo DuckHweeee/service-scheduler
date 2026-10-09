@@ -61,5 +61,6 @@ export const ErrorCode = z.enum([
   'APPOINTMENT_NOT_ACTIVE',
   'LATE_ARRIVAL',
   'STOCK_BELOW_RESERVED',
+  'IDEMPOTENCY_KEY_REUSED',
 ]);
 export type ErrorCode = z.infer<typeof ErrorCode>;

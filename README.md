@@ -135,6 +135,11 @@ docs/                system design, spec, ADRs, observability, API docs, AI log,
 - No authentication: the web acts as customer CUS-10482; the service board is an unauthenticated advisor view.
 - The web decides "today" from the browser clock in the dealership's timezone; with `CLOCK_OVERRIDE` on the API, use a
   browser clock that matches (the e2e suite pins both). Same-day panels themselves follow the server's answer.
+- Check-in is not time-bounded: an advisor can check in an advance appointment on an earlier day (SPEC §6.3 does not
+  restrict it). Reserved parts are released on cancel / no-show but never consumed on completion; stock is expected to
+  be corrected by the DMS inventory sync.
+- The availability grid does not mark slots where the customer's vehicle is already booked elsewhere; booking one
+  returns 409 `VEHICLE_ALREADY_BOOKED` (the 409 alternatives do skip them).
 - Reschedule and notifications are out of scope (Reschedule is shown disabled). More in
   [System Design §10](docs/SYSTEM_DESIGN.md#10-future-work).
 

@@ -10,3 +10,6 @@ onlyBuiltDependencies:
   - '@embedded-postgres/darwin-arm64'
   - '@embedded-postgres/linux-x64'
   - '@embedded-postgres/linux-arm64'
+ignoredBuiltDependencies:
+  # pulled in by OpenTelemetry; its postinstall only prints a version-compatibility hint
+  - protobufjs
