@@ -34,3 +34,6 @@ Read before any work: `docs/SPEC.md` (the contract) and your work package in `do
 
 ## Final report (always)
 Summary · Acceptance criteria (✅/❌ + evidence) · Assumptions made · Deviations / open questions · Files changed.
+
+## Project router
+Agents also read `AGENT.md` (router table, forbidden paths, check commands). Project agents in `.claude/agents/`: `backend-dev`, `frontend-dev`, `db-architect` (opus, every DB change), `sched-qa`.

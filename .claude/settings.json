@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(rm -rf:*)",
+      "Bash(git push:*)",
+      "Bash(git rebase:*)",
+      "Read(./.env)",
+      "Read(./.env.local)",
+      "Read(./.env.production)",
+      "Edit(./.pgdata/**)",
+      "Edit(./packages/contracts/**)",
+      "Edit(./docs/SPEC.md)"
+    ]
+  }
+}
