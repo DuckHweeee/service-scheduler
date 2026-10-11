@@ -5,7 +5,7 @@ import type { ReactNode } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { ApiError, errorMessage } from '../../api/client.js';
 import { keys, useAppointment, useCancelAppointment } from '../../api/hooks.js';
-import { dateLong } from '../../lib/time.js';
+import { dateLong, dateTimeShort, durationText } from '../../lib/time.js';
 import { BAY_TYPE_LABEL, SKILL_LABEL } from '../book/labels.js';
 import { CancelDialog } from './CancelDialog.js';
 import styles from './Record.module.css';
@@ -54,23 +54,32 @@ function Record({ a }: { a: AppointmentDetail }) {
   const canCancel = isConfirmed && !a.checkedInAt && Date.parse(a.startAt) > Date.now();
   const sameDay = a.channel === 'SAME_DAY';
 
+  const tz = a.dealership.timezone;
+  const vehicle = `${a.vehicle.modelYear} ${a.vehicle.modelName}${a.vehicle.plate ? ` · ${a.vehicle.plate}` : ''}`;
   const fields: [string, string][] = [
-    ['appointment_id', a.reference],
-    ['status', a.status],
-    ['channel', a.channel],
-    ['customer_id', a.customer.id],
-    ['vehicle_id', a.vehicle.id],
-    ['technician_id', a.technician.id],
-    ['service_bay_id', a.serviceBay.id],
-    ['dealership_id', a.dealership.id],
-    ['service_type', a.serviceType.code],
-    ['start_at', a.startAt],
-    ['end_at', a.endAt],
-    ['duration_min', String(a.durationMin)],
-    ['created_at', a.createdAt],
+    ['Reference', a.reference],
+    ['Status', STATUS_LABEL[state]],
+    ['Booked via', sameDay ? 'Same-day express' : 'Advance booking'],
+    ['Service', a.serviceType.name],
+    ['Date', `${dateLong(a.localDate)} ${a.localDate.slice(0, 4)}`],
+    ['Time', `${range} (dealership time)`],
+    ['Duration', durationText(a.durationMin)],
+    ['Dealership', a.dealership.name],
+    ['Service bay', a.serviceBay.name],
+    ['Technician', a.technician.name],
+    ['Vehicle', vehicle],
+    ['Booked on', dateTimeShort(a.createdAt, tz)],
   ];
-  if (a.checkedInAt) fields.push(['checked_in_at', a.checkedInAt]);
-  if (a.cancelledAt) fields.push(['cancelled_at', a.cancelledAt]);
+  if (a.checkedInAt) fields.push(['Checked in', dateTimeShort(a.checkedInAt, tz)]);
+  if (a.cancelledAt) fields.push(['Cancelled', dateTimeShort(a.cancelledAt, tz)]);
+  const ids: [string, string][] = [
+    ['Customer ID', a.customer.id],
+    ['Vehicle ID', a.vehicle.id],
+    ['Technician ID', a.technician.id],
+    ['Bay ID', a.serviceBay.id],
+    ['Dealership ID', a.dealership.id],
+    ['Service code', a.serviceType.code],
+  ];
 
   const confirmCancel = (reason: string) =>
     cancel.mutate(
@@ -242,9 +251,9 @@ function Record({ a }: { a: AppointmentDetail }) {
         <section aria-labelledby="h-fields" className={styles.fields}>
           <div className={styles.panelHead}>
             <h2 id="h-fields" className={styles.h2}>
-              Appointment record
+              Appointment details
             </h2>
-            <span className={styles.panelNote}>Stored fields</span>
+            <span className={styles.panelNote}>Your booking at a glance</span>
           </div>
           <div className={styles.tableWrap}>
             <table className={styles.table}>
@@ -252,12 +261,23 @@ function Record({ a }: { a: AppointmentDetail }) {
                 {fields.map(([k, v]) => (
                   <tr key={k}>
                     <th scope="row">{k}</th>
-                    <td>{v}</td>
+                    <td className={k === 'Reference' ? styles.mono : undefined}>{v}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+          <details className={styles.ids}>
+            <summary>Reference IDs (for support)</summary>
+            <dl>
+              {ids.map(([k, v]) => (
+                <div key={k}>
+                  <dt>{k}</dt>
+                  <dd className={styles.mono}>{v}</dd>
+                </div>
+              ))}
+            </dl>
+          </details>
         </section>
 
         <section aria-labelledby="h-hist" className={styles.history}>

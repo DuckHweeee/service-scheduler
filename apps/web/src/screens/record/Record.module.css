@@ -260,7 +260,6 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
-  min-width: 460px;
 }
 .table tr {
   border-bottom: 1px solid var(--bg);
@@ -268,14 +267,42 @@
 .table th,
 .table td {
   padding: 11px 24px;
-  font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 14px;
   text-align: left;
 }
 .table th {
   width: 40%;
   font-weight: 500;
   color: var(--muted);
+}
+.ids {
+  border-top: 1px solid #e4e5df;
+  padding: 14px 24px;
+  font-size: 14px;
+}
+.ids summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-weight: 500;
+}
+.ids dl {
+  margin: 12px 0 0;
+}
+.ids dl > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--bg);
+}
+.ids dt {
+  color: var(--muted);
+}
+.ids dd {
+  margin: 0;
+  font-size: 13px;
+  overflow-wrap: anywhere;
 }
 .parts {
   list-style: none;
