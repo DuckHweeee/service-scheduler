@@ -121,6 +121,12 @@ export const dateShort = (date: string): string => `${weekdayName(date, true)} $
 export const dateLong = (date: string): string =>
   `${weekdayName(date)} ${dateParts(date)[2]} ${monthName(date)}`;
 
+/** `Wed 7 Oct 2026, 14:02` — an instant rendered in the given timezone. */
+export function dateTimeShort(iso: string, tz: string): string {
+  const { date, minutes } = zonedNow(Date.parse(iso), tz);
+  return `${dateShort(date)} ${date.slice(0, 4)}, ${fmtMin(minutes)}`;
+}
+
 export function durationText(min: number): string {
   if (min < 60) return `${min} min`;
   const h = Math.floor(min / 60);

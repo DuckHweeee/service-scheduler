@@ -26,8 +26,8 @@ describe('Appointment record', () => {
   it('renders the header, linked cards and the booking history in order', async () => {
     renderRecord();
     expect(await screen.findByRole('heading', { level: 1, name: 'Brake pad replacement' })).toBeInTheDocument();
-    expect(screen.getByText('Confirmed')).toBeInTheDocument();
-    expect(screen.getByText(/Thursday 8 October 2026/)).toBeInTheDocument();
+    expect(screen.getByText('Confirmed', { selector: 'span' })).toBeInTheDocument();
+    expect(screen.getByText(/Thursday 8 October 2026 ·/)).toBeInTheDocument();
     expect(screen.getByText('Brakes ✓ required')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Reschedule' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Reschedule' })).toHaveAttribute('title', 'Coming soon');
@@ -45,8 +45,13 @@ describe('Appointment record', () => {
     ]);
 
     const table = screen.getByRole('table');
-    expect(within(table).getByRole('rowheader', { name: 'service_bay_id' })).toBeInTheDocument();
-    expect(within(table).getByText('2026-10-08T13:00:00+07:00')).toBeInTheDocument();
+    for (const name of ['Booked via', 'Time', 'Booked on']) {
+      expect(within(table).getByRole('rowheader', { name })).toBeInTheDocument();
+    }
+    expect(within(table).getByText('Advance booking')).toBeInTheDocument();
+    expect(within(table).getByText('Wed 7 Oct 2026, 14:02')).toBeInTheDocument();
+    expect(within(table).queryByText('service_bay_id')).not.toBeInTheDocument();
+    expect(screen.getByText('Reference IDs (for support)')).toBeInTheDocument();
   });
 
   it('shows the express tag and late-arrival notice for same-day appointments', async () => {
@@ -72,7 +77,7 @@ describe('Appointment record', () => {
     await user.keyboard('{Escape}');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(open).toHaveFocus();
-    expect(screen.getByText('Confirmed')).toBeInTheDocument();
+    expect(screen.getByText('Confirmed', { selector: 'span' })).toBeInTheDocument();
   });
 
   it('cancel dialog: confirming shows the cancelled state', async () => {
