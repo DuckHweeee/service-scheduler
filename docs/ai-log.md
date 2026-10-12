@@ -183,5 +183,22 @@ verified, what was caught and corrected. Agent prompts are archived verbatim in 
   step: the walkthrough's final "tidy up" cancel now returns 409 because that appointment is checked in. It also flagged a
   dead `test.skip` probe for the Wave 0 check-in stub in e2e, which Opus removed; `pnpm e2e` 13/13 green.
 
+## Wave 5 — showcase polish (2026-10-12)
+
+Plan approved by Huy: reschedule in place (S7, ADR-006), measurable quality evidence, Docker + Grafana + k6, CI, docs.
+Auth and technician shifts stay future work. Executed through the project agents in worktrees; Opus gates and merges.
+
+- **W5-0b (db-architect):** `loadDayContext({ excludeAppointmentId })` — one `ne(id)` in the WHERE, no migration.
+  Agent's mutation check: filter dropped → exclusion test red, 9 others green. Opus re-ran the file 10/10 + typecheck.
+  Scope note: the db-architect definition only owns `src/db/**`, the brief also gave it the test file; accepted, future
+  DB briefs state the exception explicitly.
+- **W5-Q1 (sched-qa):** coverage thresholds (engine hard 100%, global floor = measured − 2), Stryker on `src/domain/**`
+  (unit tests only, ~20 s). The agent's new tests lifted the mutation score **86.81% → 98.77%** (30 → 3 survivors; the 4
+  left are argued equivalent in `docs/quality.md`). **Opus reproduced both numbers** in the worktree (318 killed /
+  4 timeout / 3 survived / 1 no-cov; API 94.16% statements). Out-of-scope `vitest.unit.config.ts` accepted (Stryker needs
+  a config without the Postgres global setup); Opus added `reports/` and `.stryker-tmp/` to the eslint ignores.
+- **Deny rules vs. orchestrator:** the project's `Edit(docs/SPEC.md)` / `Edit(packages/contracts/**)` deny rules also block
+  Opus. Opus did not route around them through the shell; Huy lifts them temporarily for the SPEC v0.3 edit.
+
 ## Parked (decide later)
 - Board "incoming request / rejected / reserved" panels from the mock.
