@@ -29,7 +29,7 @@ export const availabilityHandlers = [
     if (!vehicle) return notFound('Vehicle');
 
     const tz = dealership.timezone;
-    const resolved = resolveDay(dealership.id, q.date, service, vehicle.modelName);
+    const resolved = resolveDay(dealership.id, q.date, service, vehicle.modelName, q.excludeReference);
     const offset = daysBetween(resolved.now.date, q.date);
     if (offset < 0 || offset > HORIZON_DAYS) {
       return problem(

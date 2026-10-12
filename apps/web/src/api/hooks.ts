@@ -16,6 +16,7 @@ import type {
   AvailabilityQuery,
   CancelAppointmentRequest,
   CreateAppointmentRequest,
+  RescheduleAppointmentRequest,
   UpdateInventoryRequest,
 } from '@scheduler/contracts';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -29,7 +30,7 @@ export const keys = {
   vehicles: (customerId: string) => ['customers', customerId, 'vehicles'] as const,
   availabilityAll: ['availability'] as const,
   availability: (dealershipId: string, q: AvailabilityQuery) =>
-    ['availability', dealershipId, q.serviceType, q.date, q.vehicleId] as const,
+    ['availability', dealershipId, q.serviceType, q.date, q.vehicleId, q.excludeReference ?? null] as const,
   appointmentsAll: ['appointments'] as const,
   appointments: (customerId: string, status?: AppointmentStatus) =>
     ['appointments', 'list', customerId, status ?? 'all'] as const,
@@ -144,6 +145,16 @@ export function useCancelAppointment() {
         schema: AppointmentDetail,
         body: body ?? {},
       }),
+    onSettled: () => invalidateBookingData(qc),
+  });
+}
+
+export function useRescheduleAppointment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ reference, body }: { reference: string; body: RescheduleAppointmentRequest }) =>
+      request(paths.rescheduleAppointment(reference), { method: 'POST', schema: AppointmentDetail, body }),
+    // A 409 also means availability changed underneath the customer, so refetch on both outcomes.
     onSettled: () => invalidateBookingData(qc),
   });
 }

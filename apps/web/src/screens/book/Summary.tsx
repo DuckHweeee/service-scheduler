@@ -13,6 +13,8 @@ interface Props {
   checking: boolean;
   error: string | null;
   onConfirm: () => void;
+  /** Defaults to "Confirm appointment"; the reschedule screen says "Move appointment". */
+  confirmLabel?: string;
 }
 
 function Tick() {
@@ -45,6 +47,7 @@ export function Summary({
   checking,
   error,
   onConfirm,
+  confirmLabel = 'Confirm appointment',
 }: Props) {
   const proposed = selected?.proposed ?? null;
   const window = selected ? `${selected.startTime}–${selected.endTime}` : '';
@@ -116,7 +119,7 @@ export function Summary({
               disabled={checking}
               aria-busy={checking}
             >
-              {checking ? 'Checking bay and technician…' : 'Confirm appointment'}
+              {checking ? 'Checking bay and technician…' : confirmLabel}
             </button>
           </>
         ) : (

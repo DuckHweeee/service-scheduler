@@ -29,8 +29,7 @@ describe('Appointment record', () => {
     expect(screen.getByText('Confirmed', { selector: 'span' })).toBeInTheDocument();
     expect(screen.getByText(/Thursday 8 October 2026 ·/)).toBeInTheDocument();
     expect(screen.getByText('Brakes ✓ required')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Reschedule' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Reschedule' })).toHaveAttribute('title', 'Coming soon');
+    expect(screen.getByRole('link', { name: 'Reschedule' })).toHaveAttribute('href', `/appointments/${REF}/reschedule`);
     expect(screen.queryByText('Express · same-day')).not.toBeInTheDocument();
 
     const history = screen.getByRole('heading', { name: 'How it was booked' }).closest('section')!;
@@ -59,6 +58,22 @@ describe('Appointment record', () => {
     renderRecord(a.reference);
     expect(await screen.findByText('Express · same-day')).toBeInTheDocument();
     expect(screen.getByText(/more than 15 minutes late/)).toBeInTheDocument();
+  });
+
+  it('shows Reschedule only for upcoming, confirmed appointments that have not checked in', async () => {
+    const cases = [
+      addAppointment({ status: 'CANCELLED', cancelledAtMs: Date.now() }),
+      addAppointment({ checkedInAtMs: Date.now() }),
+      addAppointment({ startMin: 8 * 60, endMin: 10 * 60 }), // started before the frozen 09:10
+    ];
+    for (const a of cases) {
+      const { unmount } = renderRecord(a.reference);
+      await screen.findByRole('heading', { level: 1 });
+      expect(screen.queryByRole('link', { name: 'Reschedule' })).not.toBeInTheDocument();
+      unmount();
+    }
+    renderRecord();
+    expect(await screen.findByRole('link', { name: 'Reschedule' })).toBeInTheDocument();
   });
 
   it('shows a friendly not-found panel with a link back to My appointments', async () => {

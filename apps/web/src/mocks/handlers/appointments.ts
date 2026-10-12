@@ -4,11 +4,12 @@ import {
   CancelAppointmentRequest,
   CreateAppointmentRequest,
   IDEMPOTENCY_HEADER,
+  RescheduleAppointmentRequest,
   routes,
 } from '@scheduler/contracts';
 import { HttpResponse, http } from 'msw';
 import { apiUrl } from '../../config.js';
-import { addDays, daysBetween, fmtMin, parseMin, toOffsetIso, zonedToMs } from '../../lib/time.js';
+import { addDays, dateShort, daysBetween, fmtMin, parseMin, toOffsetIso, zonedToMs } from '../../lib/time.js';
 import { checkWindow } from '../engine.js';
 import { resolveDay } from '../resolve.js';
 import { hasScenario, mockNow } from '../scenario.js';
@@ -385,6 +386,194 @@ export const appointmentHandlers = [
         tz,
         'Appointment cancelled',
         body.success && body.data.reason ? { reason: body.data.reason } : {},
+      ),
+    );
+    return HttpResponse.json(toDetail(a));
+  }),
+
+  http.post(apiUrl(routes.rescheduleAppointment), async ({ params, request }) => {
+    seedDemoData();
+    const a = store.appointments.find((x) => x.reference === params.reference);
+    if (!a) return notFound('Appointment');
+    const raw: unknown = await request.json().catch(() => undefined);
+    const parsed = RescheduleAppointmentRequest.safeParse(raw);
+    if (!parsed.success) {
+      return problem(400, 'VALIDATION_ERROR', 'The request body is invalid.', {
+        errors: parsed.error.issues.map((i) => ({ path: i.path.join('.'), message: i.message })),
+      });
+    }
+    const body = parsed.data;
+
+    const dealership = getDealership(a.dealershipId)!;
+    const service = getServiceType(a.serviceTypeCode)!;
+    const vehicle = getVehicle(a.vehicleId)!;
+    const tz = dealership.timezone;
+    const resolved = resolveDay(dealership.id, body.date, service, vehicle.modelName, a.reference);
+    const today = resolved.now.date;
+    const notReschedulable = () =>
+      problem(
+        409,
+        'APPOINTMENT_NOT_RESCHEDULABLE',
+        'Only upcoming confirmed appointments that have not checked in can be rescheduled.',
+      );
+    if (
+      a.status !== 'CONFIRMED' ||
+      a.checkedInAtMs !== null ||
+      zonedToMs(a.date, a.startMin, tz) <= resolved.now.ms
+    )
+      return notReschedulable();
+
+    const horizonEnd = addDays(today, HORIZON_DAYS);
+    const offset = daysBetween(today, body.date);
+    if (offset < 0 || offset > HORIZON_DAYS) {
+      return problem(422, 'OUTSIDE_BOOKING_HORIZON', `Bookings are open from ${today} to ${horizonEnd}.`);
+    }
+    const start = parseMin(body.startTime);
+    const end = start + service.durationMin;
+    const opensAt = parseMin(dealership.opensAt);
+    const closesAt = parseMin(dealership.closesAt);
+    if (!resolved.day.isWorkingDay)
+      return problem(422, 'DEALERSHIP_CLOSED', 'The dealership is closed on that day.');
+    if (start < opensAt || end > closesAt) {
+      return problem(
+        422,
+        'OUTSIDE_OPENING_HOURS',
+        `The job must start and finish within opening hours (${dealership.opensAt}–${dealership.closesAt}, Monday to Friday).`,
+      );
+    }
+    if ((start - opensAt) % 30 !== 0)
+      return problem(422, 'MISALIGNED_START', 'Start times fall on 30-minute marks from opening.');
+
+    const isSameDay = body.date === today;
+    if (isSameDay) {
+      if (resolved.blocked === 'SERVICE_NOT_EXPRESS')
+        return problem(422, 'SERVICE_NOT_EXPRESS', `${service.name} cannot be booked for today.`);
+      if (resolved.blocked === 'PARTS_UNAVAILABLE')
+        return problem(
+          409,
+          'PARTS_UNAVAILABLE',
+          `Parts for ${service.name} are not in stock at ${dealership.name} today.`,
+        );
+      if (
+        resolved.blocked === 'PAST_CUTOFF' ||
+        (resolved.earliestStart !== null && start < resolved.earliestStart)
+      ) {
+        return problem(
+          422,
+          'LEAD_TIME_NOT_MET',
+          `Same-day bookings need ${dealership.sameDayPolicy.leadTimeMin / 60} hours' notice.`,
+        );
+      }
+    }
+
+    // Same date + time: nothing changes, no event (natural idempotency).
+    if (body.date === a.date && start === a.startMin) return HttpResponse.json(toDetail(a));
+
+    const sameDayFor = (_base: unknown, date: string) =>
+      resolveDay(dealership.id, date, service, vehicle.modelName, a.reference).day;
+    const conflict = (status: Parameters<typeof slotConflictDetail>[0]) =>
+      problem(
+        409,
+        'SLOT_UNAVAILABLE',
+        slotConflictDetail(status, SKILL_WORD[service.requiredSkill] ?? service.requiredSkill, start, end),
+        {
+          reason: status,
+          alternatives: alternativesFor(
+            dealership.id,
+            service,
+            body.date,
+            start,
+            today,
+            horizonEnd,
+            sameDayFor,
+            a.reference,
+          ),
+        },
+      );
+    if (hasScenario('conflict') && !store.conflictConsumed) {
+      store.conflictConsumed = true;
+      return conflict('NO_QUALIFIED_TECHNICIAN');
+    }
+
+    const vehicleClash = store.appointments.some(
+      (x) =>
+        x !== a &&
+        x.status === 'CONFIRMED' &&
+        x.vehicleId === vehicle.id &&
+        x.date === body.date &&
+        x.startMin < end &&
+        start < x.endMin,
+    );
+    if (vehicleClash)
+      return problem(
+        409,
+        'VEHICLE_ALREADY_BOOKED',
+        'This vehicle already has a confirmed appointment that overlaps this time.',
+      );
+
+    const window = checkWindow(resolved.day, specOf(service), start);
+    if (window.status !== 'AVAILABLE' || !window.proposed) return conflict(window.status);
+
+    // Parts follow the channel (SPEC §6.5 step 6).
+    const wasSameDay = a.channel === 'SAME_DAY';
+    if (isSameDay && !wasSameDay) {
+      const parts = partRequirements(service.code, vehicle.modelName);
+      for (const p of parts) {
+        const line = store.inventory[dealership.id]?.[p.sku];
+        if (!line || line.onHand - line.reserved < p.qty) {
+          return problem(
+            409,
+            'PARTS_UNAVAILABLE',
+            `Parts for ${service.name} are not in stock at ${dealership.name} today.`,
+          );
+        }
+      }
+      for (const p of parts) store.inventory[dealership.id]![p.sku]!.reserved += p.qty;
+      a.parts = parts.map((p) => ({ ...p, released: false }));
+    } else if (!isSameDay && wasSameDay) {
+      releaseParts(a);
+    }
+
+    const { bay, technician } = window.proposed;
+    const from = {
+      date: a.date,
+      startTime: fmtMin(a.startMin),
+      endTime: fmtMin(a.endMin),
+      technicianId: a.technicianId,
+      bayId: a.bayId,
+      channel: a.channel,
+    };
+    const oldBay = store.bays[a.dealershipId]!.find((b) => b.id === a.bayId);
+    const oldTech = store.techs[a.dealershipId]!.find((t) => t.id === a.technicianId);
+    a.date = body.date;
+    a.startMin = start;
+    a.endMin = end;
+    a.technicianId = technician.id;
+    a.bayId = bay.id;
+    a.channel = isSameDay ? 'SAME_DAY' : 'ADVANCE';
+    a.bookingSessionId = body.bookingSessionId;
+
+    const whenFrom = from.date === body.date ? from.startTime : `${dateShort(from.date)} ${from.startTime}`;
+    const whenTo = from.date === body.date ? body.startTime : `${dateShort(body.date)} ${body.startTime}`;
+    a.history.push(
+      event(
+        'APPOINTMENT_RESCHEDULED',
+        resolved.now.ms,
+        tz,
+        `Rescheduled from ${whenFrom} to ${whenTo} — ${bay.name}, ${technician.name}`,
+        {
+          from: { ...from, technicianName: oldTech?.name, bayName: oldBay?.name },
+          to: {
+            date: body.date,
+            startTime: body.startTime,
+            endTime: fmtMin(end),
+            technicianId: technician.id,
+            technicianName: technician.name,
+            bayId: bay.id,
+            bayName: bay.name,
+            channel: a.channel,
+          },
+        },
       ),
     );
     return HttpResponse.json(toDetail(a));

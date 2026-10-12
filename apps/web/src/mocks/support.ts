@@ -40,6 +40,7 @@ const TITLES: Partial<Record<ErrorCode, string>> = {
   LEAD_TIME_NOT_MET: 'Lead time not met',
   APPOINTMENT_NOT_CANCELLABLE: 'Appointment not cancellable',
   APPOINTMENT_NOT_ACTIVE: 'Appointment not active',
+  APPOINTMENT_NOT_RESCHEDULABLE: 'Appointment not reschedulable',
   LATE_ARRIVAL: 'Late arrival',
   STOCK_BELOW_RESERVED: 'Stock below reserved',
 };
@@ -96,7 +97,7 @@ const shift = (iv: Interval[], by: number): Interval[] =>
   iv.map((i) => ({ start: i.start + by, end: i.end + by }));
 
 /** Day context for a dealership: deterministic background load plus appointments created through the mock API. */
-export function buildDay(dealershipId: string, date: string): DayContext {
+export function buildDay(dealershipId: string, date: string, excludeReference?: string): DayContext {
   const d = getDealership(dealershipId)!;
   const dealerIdx = dealerships.findIndex((x) => x.id === dealershipId);
   const opensAt = parseMin(d.opensAt);
@@ -104,7 +105,11 @@ export function buildDay(dealershipId: string, date: string): DayContext {
   const isWorkingDay = d.workingDays.includes(isoWeekday(date));
   const seed = dealerIdx * 5 + (dayOrdinal(date) % 40);
   const mine = store.appointments.filter(
-    (a) => a.status === 'CONFIRMED' && a.dealershipId === dealershipId && a.date === date,
+    (a) =>
+      a.status === 'CONFIRMED' &&
+      a.dealershipId === dealershipId &&
+      a.date === date &&
+      a.reference !== excludeReference,
   );
 
   const bays = store.bays[dealershipId]!.map((b, i) => ({
@@ -130,6 +135,7 @@ export function withSameDay(
   date: string,
   earliestStart: number,
   quotaCap: number,
+  excludeReference?: string,
 ): DayContext {
   const sameDayBusy = store.appointments
     .filter(
@@ -137,7 +143,8 @@ export function withSameDay(
         a.status === 'CONFIRMED' &&
         a.channel === 'SAME_DAY' &&
         a.dealershipId === dealershipId &&
-        a.date === date,
+        a.date === date &&
+        a.reference !== excludeReference,
     )
     .map((a) => ({ start: a.startMin, end: a.endMin }));
   return { ...day, sameDay: { earliestStart, quotaCap, sameDayBusy } };
@@ -145,7 +152,15 @@ export function withSameDay(
 
 // ---------- parts ----------
 
-export function partsAvailable(dealershipId: string, serviceCode: string, modelName: string): boolean {
+export function partsAvailable(
+  dealershipId: string,
+  serviceCode: string,
+  modelName: string,
+  excludeReference?: string,
+): boolean {
+  const own = store.appointments.find((a) => a.reference === excludeReference);
+  // The appointment being rescheduled already holds same-day parts: they count as free (SPEC §6.5).
+  if (own?.parts.some((p) => !p.released)) return true;
   if (hasScenario('parts')) return false;
   const stock = store.inventory[dealershipId] ?? {};
   return partRequirements(serviceCode, modelName).every((r) => {
@@ -164,12 +179,13 @@ export function alternativesFor(
   today: string,
   horizonEnd: string,
   sameDayFor: (day: DayContext, date: string) => DayContext,
+  excludeReference?: string,
 ): AlternativeSlot[] {
   const d = getDealership(dealershipId)!;
   const days: { date: string; day: DayContext }[] = [];
   let cursor = date;
   while (cursor <= horizonEnd && days.length < 8) {
-    const base = buildDay(dealershipId, cursor);
+    const base = buildDay(dealershipId, cursor, excludeReference);
     if (base.isWorkingDay)
       days.push({ date: cursor, day: cursor === today ? sameDayFor(base, cursor) : base });
     cursor = addDays(cursor, 1);
