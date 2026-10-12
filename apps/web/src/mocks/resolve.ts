@@ -23,16 +23,17 @@ export function resolveDay(
   date: string,
   service: ServiceLike & { isExpress: boolean },
   modelName: string,
+  excludeReference?: string,
 ): ResolvedDay {
   const d = getDealership(dealershipId)!;
   const now = mockNow(d.timezone);
-  const base = buildDay(dealershipId, date);
+  const base = buildDay(dealershipId, date, excludeReference);
   if (date !== now.date || !base.isWorkingDay)
     return { now, day: base, earliestStart: null, blocked: null, sameDay: null };
 
   const policy = evaluateSameDay({
     isExpress: service.isExpress,
-    partsAvailable: partsAvailable(dealershipId, service.code, modelName),
+    partsAvailable: partsAvailable(dealershipId, service.code, modelName, excludeReference),
     nowMin: now.minutes,
     leadMin: d.sameDayPolicy.leadTimeMin,
     opensAt: parseMin(d.opensAt),
@@ -44,7 +45,7 @@ export function resolveDay(
   });
   const day = policy.blocked
     ? base
-    : withSameDay(base, dealershipId, date, policy.earliestStart!, policy.quotaCap);
+    : withSameDay(base, dealershipId, date, policy.earliestStart!, policy.quotaCap, excludeReference);
   return {
     now,
     day,

@@ -1,0 +1,37 @@
+.current {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.currentGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px 24px;
+  margin: 0;
+}
+.currentGrid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.currentGrid dt {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+.currentGrid dd {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.fixed {
+  font-size: 13px;
+  color: var(--muted-2);
+}
+.back {
+  align-self: flex-start;
+  color: var(--accent);
+  font-weight: 600;
+}

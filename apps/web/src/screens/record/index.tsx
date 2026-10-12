@@ -42,7 +42,8 @@ function LinkedCard({ label, icon, title, id, children }: { label: string; icon:
 }
 
 function Record({ a }: { a: AppointmentDetail }) {
-  const { search } = useLocation();
+  const { search, state: navState } = useLocation();
+  const moved = (navState as { notice?: unknown } | null)?.notice;
   const cancel = useCancelAppointment();
   const [dialog, setDialog] = useState(false);
   const [justCancelled, setJustCancelled] = useState(false);
@@ -140,9 +141,11 @@ function Record({ a }: { a: AppointmentDetail }) {
             <button type="button" className={styles.btnPrimary} onClick={() => downloadIcs(a)}>
               Add to calendar
             </button>
-            <button type="button" className={styles.btnGhost} disabled title="Coming soon">
-              Reschedule
-            </button>
+            {canCancel && (
+              <Link to={{ pathname: `/appointments/${a.reference}/reschedule`, search }} className={styles.btnGhost}>
+                Reschedule
+              </Link>
+            )}
             {canCancel && (
               <button type="button" className={styles.btnDanger} onClick={() => setDialog(true)}>
                 Cancel appointment
@@ -152,6 +155,11 @@ function Record({ a }: { a: AppointmentDetail }) {
         )}
       </section>
 
+      {typeof moved === 'string' && a.status === 'CONFIRMED' && (
+        <p role="status" className={styles.notice}>
+          {moved}
+        </p>
+      )}
       {justCancelled && a.status === 'CANCELLED' && (
         <p className={styles.notice}>This appointment has been cancelled. The bay and technician were released.</p>
       )}

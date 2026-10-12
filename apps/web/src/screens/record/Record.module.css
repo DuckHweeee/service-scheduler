@@ -123,6 +123,12 @@
   border: 0;
   font-weight: 700;
 }
+.btnGhost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
 .btnGhost:disabled {
   opacity: 0.55;
 }
