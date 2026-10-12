@@ -18,6 +18,7 @@
     "db:up": "pnpm --filter @scheduler/api db:up",
     "db:migrate": "pnpm --filter @scheduler/api db:migrate",
     "db:seed": "pnpm --filter @scheduler/api db:seed",
+    "coverage": "pnpm -r test:coverage",
     "e2e": "playwright test"
   },
   "devDependencies": {
