@@ -102,6 +102,8 @@ export const AvailabilityQuery = z.object({
   serviceType: Id,
   date: LocalDate,
   vehicleId: Id,
+  /** Reschedule screen (SPEC §6.5): compute the grid as if this appointment did not exist. */
+  excludeReference: AppointmentReference.optional(),
 });
 export type AvailabilityQuery = z.infer<typeof AvailabilityQuery>;
 
@@ -225,6 +227,14 @@ export type ListAppointmentsQuery = z.infer<typeof ListAppointmentsQuery>;
 
 export const CancelAppointmentRequest = z.object({ reason: z.string().max(500).optional() });
 export type CancelAppointmentRequest = z.infer<typeof CancelAppointmentRequest>;
+
+/** SPEC §6.5: new local date + start; dealership, service, customer and vehicle never change. */
+export const RescheduleAppointmentRequest = z.object({
+  date: LocalDate,
+  startTime: LocalTime,
+  bookingSessionId: z.uuid(),
+});
+export type RescheduleAppointmentRequest = z.infer<typeof RescheduleAppointmentRequest>;
 
 export const ReferenceParams = z.object({ reference: AppointmentReference });
 export const IdParams = z.object({ id: Id });

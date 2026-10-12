@@ -16,6 +16,8 @@ export const paths = {
   appointment: (reference: string) => `${API_PREFIX}/appointments/${encodeURIComponent(reference)}`,
   cancelAppointment: (reference: string) => `${API_PREFIX}/appointments/${encodeURIComponent(reference)}/cancel`,
   checkIn: (reference: string) => `${API_PREFIX}/appointments/${encodeURIComponent(reference)}/check-in`,
+  rescheduleAppointment: (reference: string) =>
+    `${API_PREFIX}/appointments/${encodeURIComponent(reference)}/reschedule`,
 } as const;
 
 /** Fastify route patterns (same shapes as `paths`, with `:params`). */
@@ -32,6 +34,7 @@ export const routes = {
   appointment: `${API_PREFIX}/appointments/:reference`,
   cancelAppointment: `${API_PREFIX}/appointments/:reference/cancel`,
   checkIn: `${API_PREFIX}/appointments/:reference/check-in`,
+  rescheduleAppointment: `${API_PREFIX}/appointments/:reference/reschedule`,
 } as const;
 
 export const IDEMPOTENCY_HEADER = 'idempotency-key';

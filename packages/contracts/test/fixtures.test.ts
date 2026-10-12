@@ -22,6 +22,7 @@ describe('fixtures conform to the contract', () => {
     ['availability', AvailabilityResponse, f.availabilityExample],
     ['sameDayAvailability', AvailabilityResponse, f.sameDayAvailabilityExample],
     ['appointmentDetail', AppointmentDetail, f.appointmentDetailExample],
+    ['rescheduledAppointment', AppointmentDetail, f.rescheduledAppointmentExample],
     ['appointmentSummary', AppointmentSummary, f.appointmentSummaryExample],
     ['board', BoardResponse, f.boardExample],
     ['inventory', InventoryItem.array(), f.inventoryExample],

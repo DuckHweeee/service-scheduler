@@ -6,6 +6,7 @@ import boardRoutes from './board.js';
 import checkInRoutes from './check-in.js';
 import inventoryRoutes from './inventory.js';
 import referenceRoutes from './reference.js';
+import rescheduleRoutes from './reschedule.js';
 
 export async function registerRoutes(app: FastifyInstance) {
   await app.register(referenceRoutes);
@@ -14,4 +15,5 @@ export async function registerRoutes(app: FastifyInstance) {
   await app.register(inventoryRoutes);
   await app.register(appointmentsRoutes);
   await app.register(checkInRoutes);
+  await app.register(rescheduleRoutes);
 }

@@ -149,6 +149,30 @@ export const appointmentDetailExample: AppointmentDetail = {
   ],
 };
 
+/** The appointment above after `POST …/reschedule` to Fri 9 Oct 10:00 (SPEC §6.5): same reference, new slot. */
+export const rescheduledAppointmentExample: AppointmentDetail = {
+  ...appointmentDetailExample,
+  startAt: '2026-10-09T10:00:00+07:00',
+  endAt: '2026-10-09T12:00:00+07:00',
+  localDate: '2026-10-09',
+  startTime: '10:00',
+  endTime: '12:00',
+  technician: { id: 'TEC-01', name: 'An Nguyen', skills: ['GENERAL', 'BRAKES', 'EV_HIGH_VOLTAGE'] },
+  serviceBay: { id: 'BAY-01', name: 'Bay 1', bayType: 'GENERAL_LIFT' },
+  history: [
+    ...appointmentDetailExample.history,
+    {
+      type: 'APPOINTMENT_RESCHEDULED',
+      occurredAt: '2026-10-08T09:15:00+07:00',
+      summary: 'Rescheduled from Thu 8 Oct 13:00 to Fri 9 Oct 10:00 — Bay 1, An Nguyen',
+      detail: {
+        from: { date: '2026-10-08', startTime: '13:00', endTime: '15:00', technicianId: 'TEC-03', bayId: 'BAY-02', channel: 'ADVANCE' },
+        to: { date: '2026-10-09', startTime: '10:00', endTime: '12:00', technicianId: 'TEC-01', bayId: 'BAY-01', channel: 'ADVANCE' },
+      },
+    },
+  ],
+};
+
 export const appointmentSummaryExample: AppointmentSummary = {
   reference: appointmentDetailExample.reference,
   status: appointmentDetailExample.status,

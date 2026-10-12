@@ -2,7 +2,7 @@
 // dealership-day for one service + vehicle: entity lookups, applicability, booking horizon, same-day policy (SPEC §5.4)
 // and the engine's DayContext. Booking-specific checks (grid alignment, opening hours, lead time) stay in booking.ts.
 import type { AlternativeSlot, AvailabilitySlot, SameDayInfo } from '@scheduler/contracts';
-import { and, eq, gt, lt } from 'drizzle-orm';
+import { and, eq, gt, lt, ne } from 'drizzle-orm';
 import type { Clock } from '../clock.js';
 import type { DbOrTx } from '../db/client.js';
 import {
@@ -52,6 +52,13 @@ export interface DayPlanInput {
   vehicleId: string;
   /** Dealership-local `YYYY-MM-DD`. */
   date: string;
+  /**
+   * Reschedule (SPEC §6.5): evaluate as if this appointment did not exist — its bay, technician, same-day quota share
+   * and vehicle window are free. Carried into `loadAlternatives`.
+   */
+  excludeAppointmentId?: string;
+  /** Reschedule within today: the appointment already holds its same-day parts, so the parts check passes. */
+  partsHeld?: boolean;
 }
 
 export interface DayPlan {
@@ -126,7 +133,7 @@ export async function resolveDayPlan(db: DbOrTx, clock: Clock, input: DayPlanInp
     sameDay = evaluateSameDay({
       isSameDay: true,
       isExpress: service.isExpress,
-      partsAvailable: p.available,
+      partsAvailable: p.available || input.partsHeld === true,
       nowMin: localMinutesCeilOf(clock.now(), tz), // seconds round up: the lead time is a minimum
       leadMin: dealership.sameDayLeadMin,
       opensAt: parseLocalTime(dealership.opensAt),
@@ -143,6 +150,7 @@ export async function resolveDayPlan(db: DbOrTx, clock: Clock, input: DayPlanInp
       sameDay && !sameDay.blocked
         ? { earliestStart: sameDay.earliestStart, quotaCap: sameDay.quotaCap }
         : null,
+    excludeAppointmentId: input.excludeAppointmentId,
   });
 
   return {
@@ -193,6 +201,7 @@ export async function loadAlternatives(
     plan.vehicle.id,
     toInstant(days[0]!.date, 0, tz),
     toInstant(addLocalDays(days[days.length - 1]!.date, 1), 0, tz),
+    plan.input.excludeAppointmentId,
   );
   const blockedStarts = busy.reduce(
     (n, b) => n + Math.ceil(((b.endAt.getTime() - b.startAt.getTime()) / 60_000 + plan.spec.durationMin) / DEFAULT_STEP_MIN),
@@ -209,7 +218,7 @@ export async function loadAlternatives(
     .map((d) => toAlternativeDto(tz, d));
 }
 
-const loadVehicleBusy = (db: DbOrTx, vehicleId: string, from: Date, to: Date) =>
+const loadVehicleBusy = (db: DbOrTx, vehicleId: string, from: Date, to: Date, excludeAppointmentId?: string) =>
   db
     .select({ startAt: appointments.startAt, endAt: appointments.endAt })
     .from(appointments)
@@ -219,6 +228,7 @@ const loadVehicleBusy = (db: DbOrTx, vehicleId: string, from: Date, to: Date) =>
         eq(appointments.status, 'CONFIRMED'),
         lt(appointments.startAt, to),
         gt(appointments.endAt, from),
+        excludeAppointmentId ? ne(appointments.id, excludeAppointmentId) : undefined,
       ),
     );
 
@@ -227,6 +237,7 @@ const reloadDay = (db: DbOrTx, plan: DayPlan): Promise<DayContext> =>
     sameDay: plan.day.sameDay
       ? { earliestStart: plan.day.sameDay.earliestStart, quotaCap: plan.day.sameDay.quotaCap }
       : null,
+    excludeAppointmentId: plan.input.excludeAppointmentId,
   });
 
 // ---------- DTO mappers ----------

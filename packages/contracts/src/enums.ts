@@ -38,6 +38,7 @@ export const BookingEventType = z.enum([
   'APPOINTMENT_CANCELLED',
   'CHECKED_IN',
   'APPOINTMENT_NO_SHOW',
+  'APPOINTMENT_RESCHEDULED',
 ]);
 export type BookingEventType = z.infer<typeof BookingEventType>;
 
@@ -58,6 +59,8 @@ export const ErrorCode = z.enum([
   'SERVICE_NOT_EXPRESS',
   'LEAD_TIME_NOT_MET',
   'APPOINTMENT_NOT_CANCELLABLE',
+  'APPOINTMENT_NOT_RESCHEDULABLE',
+  'RESCHEDULE_SCOPE_MISMATCH',
   'APPOINTMENT_NOT_ACTIVE',
   'LATE_ARRIVAL',
   'STOCK_BELOW_RESERVED',

@@ -1,6 +1,6 @@
 # Unified Service Scheduler — Technical Spec (the contract)
 
-Status: **v0.2 — locked for Wave 1** (v0.2 adds same-day express booking). Owner: Huy + Opus.
+Status: **v0.3 — locked for Wave 5** (v0.2 added same-day express booking; v0.3 adds reschedule, §6.5). Owner: Huy + Opus.
 Sonnet agents implement against this document and must not change it. If a spec gap blocks you, stop and
 report it; do not invent.
 
@@ -21,8 +21,9 @@ Source material: `KeyloopCodingChallange.pdf` (Scenario A) and `design/screens/*
 | S4 | My appointments list and cancellation | `GET /appointments`, `POST /appointments/{ref}/cancel` |
 | S5 | **Same-day express booking** with lead time, quota, parts check, instant confirmation | §5.5, §6.2 |
 | S6 | **Late-arrival policy** for same-day bookings (check-in, auto no-show) | §6.3 |
+| S7 | **Reschedule** an upcoming appointment in place (same reference, same dealership and service) | §6.5 |
 
-**Out of scope (future work):** authentication/authorisation, reschedule, notifications, technician
+**Out of scope (future work):** authentication/authorisation, notifications, technician
 shifts/absences, buffers between jobs, multi-day jobs, payments, walk-in queue management, live DMS inventory
 integration (v1 has a local inventory table plus an update endpoint standing in for the sync), the
 "incoming request / rejected / reserved" panels on the board mock.
@@ -279,6 +280,7 @@ All errors are RFC 7807 `application/problem+json`:
 | `GET /appointments/{reference}` | detail incl. linked entities + history | 200 | 404 |
 | `POST /appointments/{reference}/cancel` | cancel `{reason?}` | 200 (idempotent if already cancelled) | 409 `APPOINTMENT_NOT_CANCELLABLE` |
 | `POST /appointments/{reference}/check-in` | advisor check-in (S6) | 200 | 409 `LATE_ARRIVAL`, 409 `APPOINTMENT_NOT_ACTIVE` |
+| `POST /appointments/{reference}/reschedule` | move to another date/time (S7) | 200 `AppointmentDetail` | see §6.5 |
 | `GET /dealerships/{id}/board?date=` | day timeline per bay & tech | 200 | 404 |
 | `GET /dealerships/{id}/inventory` | stock (stand-in for DMS sync) | 200 `{items}` | 404 |
 | `PUT /dealerships/{id}/inventory/{sku}` | set `onHand` (simulated DMS sync) | 200 | 404, 409 `STOCK_BELOW_RESERVED` |
@@ -298,6 +300,10 @@ Availability response:
 `sameDay` is `null` for future dates. When `sameDay.blocked` is non-null, `slots` is `[]`. A non-working day is not an
 error for availability: 200 with `isWorkingDay: false` and `slots: []` (and `sameDay: null`).
 `isExpress` on a slot = it is a same-day slot (UI label "Express slot"). `proposed` is a non-binding preview.
+Optional `excludeReference=APT-…` (reschedule screen): the grid is computed as if that appointment did not exist — its
+bay, technician, same-day quota share and vehicle window are free, and if it already holds same-day parts the parts
+check passes. Unknown reference → 404. The appointment must belong to the requested dealership, service and vehicle,
+else 422 `RESCHEDULE_SCOPE_MISMATCH`.
 
 ### 6.1 `POST /appointments`
 
@@ -352,6 +358,70 @@ createdAt, checkedInAt, cancelledAt, lateGraceMin, customer, vehicle (vinLast4, 
 serviceType, technician (skills), serviceBay, parts `[{sku,name,qty}]`, `history: [{type, occurredAt, summary, detail}]`.
 `summary` is a server-rendered sentence (e.g. "Check passed: Bay 2 and Riya Patel free 13:00–15:00").
 
+### 6.5 Reschedule (S7, ADR-006)
+
+`POST /appointments/{reference}/reschedule`, body `{ date: "YYYY-MM-DD", startTime: "HH:mm", bookingSessionId: uuid }`
+→ 200 `AppointmentDetail` (same reference). Dealership, service, customer and vehicle never change; the engine picks the
+technician and bay again for the new window.
+
+Errors: 400 `VALIDATION_ERROR`; 404 `NOT_FOUND`; 409 `APPOINTMENT_NOT_RESCHEDULABLE` (not `CONFIRMED`, checked in, or
+`start_at <= now`, including a cancel / check-in / no-show that commits while the reschedule runs); 409 `SLOT_UNAVAILABLE`
+(+ `reason`, `alternatives`), 409 `VEHICLE_ALREADY_BOOKED`, 409 `PARTS_UNAVAILABLE`; every 422 of §6.1 that applies to
+the new date/time (`OUTSIDE_BOOKING_HORIZON`, `DEALERSHIP_CLOSED`, `OUTSIDE_OPENING_HOURS`, `MISALIGNED_START`,
+`SERVICE_NOT_EXPRESS`, `LEAD_TIME_NOT_MET`).
+
+Target equals the current `date` + `startTime` → 200, nothing changes, no event (natural idempotency; no
+`Idempotency-Key` header for this endpoint).
+
+Order of operations:
+
+1. Load the appointment; check rescheduable (above). Validate the target exactly as §6.1 step 1 (horizon, working day,
+   opening hours, 30-minute grid, same-day express and lead time when the target is today). Write `SLOT_REQUESTED`
+   (detail as in §6.1 plus `rescheduleOf: reference`).
+2. `BEGIN`; advisory locks on `dealership:old_local_date` and `dealership:new_local_date`, **taken in ascending key
+   order**, one lock if equal.
+3. Inside the tx, re-read the appointment (still `CONFIRMED`, not checked in, start still in the future, else 409
+   `APPOINTMENT_NOT_RESCHEDULABLE`) and resolve the target day plan **excluding this appointment** — its bay, technician,
+   same-day quota share and vehicle window count as free; if the appointment already holds same-day parts
+   (`channel = SAME_DAY` and the target is also today), the parts check is treated as passed.
+4. Vehicle overlap with any *other* confirmed appointment → `VEHICLE_ALREADY_BOOKED`.
+5. `checkWindow` not available → `ROLLBACK`, `CHECK_FAILED` (with reason and alternatives, alternatives also computed
+   excluding this appointment), 409 `SLOT_UNAVAILABLE`.
+6. Parts by channel transition (`channel` is recomputed: `SAME_DAY` iff new date == local today):
+   ADVANCE → SAME_DAY: reserve as §6.1 step 6 (0 rows → 409 `PARTS_UNAVAILABLE`) and insert `appointment_parts`;
+   SAME_DAY → ADVANCE: release as §6.2; SAME_DAY → SAME_DAY: keep the existing reservation; ADVANCE → ADVANCE: nothing.
+7. `UPDATE appointments SET start_at, end_at, technician_id, service_bay_id, channel WHERE id = … AND status = 'CONFIRMED'
+   AND checked_in_at IS NULL` — 0 rows → 409 `APPOINTMENT_NOT_RESCHEDULABLE`. Insert `APPOINTMENT_RESCHEDULED` with
+   `detail { from: {date, startTime, endTime, technicianId, technicianName, bayId, bayName, channel}, to: {…same keys} }`
+   in the same tx; `COMMIT`; 200.
+8. `23P01` anyway → 409 `SLOT_UNAVAILABLE` / `VEHICLE_ALREADY_BOOKED` (defence in depth).
+
+History summary: `"Rescheduled from Thu 8 Oct 10:00 to Fri 9 Oct 13:00 — Bay 2, Riya Patel"` (same day:
+`"Rescheduled from 10:00 to 13:00 — Bay 2, Riya Patel"`).
+
+Metric: `reschedule_attempts_total{outcome,reason}` (outcomes `rescheduled`, `unchanged`, `rejected`, `invalid`),
+span `booking.reschedule`.
+
+Required integration tests (name them by id):
+
+| # | Case | Expect |
+|---|---|---|
+| R1 | Advance brake 10:00 → next day 13:00, free | 200, same reference, new time/tech/bay, `APPOINTMENT_RESCHEDULED` with from/to; old window bookable again |
+| R2 | Brake 10:00 → 10:30 same day, only its own resources free | 200 (overlaps only itself) |
+| R3 | Move to a non-working day / 16:00 for 120 m / 10:15 / beyond horizon | 422 `DEALERSHIP_CLOSED` / `OUTSIDE_OPENING_HOURS` / `MISALIGNED_START` / `OUTSIDE_BOOKING_HORIZON`; row unchanged |
+| R4 | Advance oil change → today (fixed clock 09:10) 11:30 | 200, `channel SAME_DAY`, `inventory.reserved` +qty, `appointment_parts` rows |
+| R5 | Same-day oil change → tomorrow | 200, `channel ADVANCE`, parts released (`reserved` −qty, `released_at` set) |
+| R6 | Same-day oil change → later today with stock exactly consumed by itself | 200 (own reservation kept, parts check passes) |
+| R7 | Target window taken | 409 `SLOT_UNAVAILABLE` + `reason` + alternatives; `CHECK_FAILED`; row unchanged |
+| R8 | Target overlaps the same vehicle's other appointment | 409 `VEHICLE_ALREADY_BOOKED` |
+| R9 | Cancelled / checked-in / started appointment | 409 `APPOINTMENT_NOT_RESCHEDULABLE` |
+| R10 | Target equals current slot | 200, no new event |
+| R11 | 20 different appointments rescheduled in parallel into one window with capacity 1 | exactly 1×200, 19×409; one CONFIRMED row in that window |
+| R12 | Reschedule ∥ new booking into the same window (capacity 1), repeated 10× | exactly one wins each time |
+| R13 | A (day 1 → day 2) ∥ B (day 2 → day 1), repeated 10× | both complete (no deadlock, no `40P01`) |
+| R14 | Same-day quota cap 1 already used by this appointment; move it within today | 200 (its own share is excluded) |
+| R15 | Reschedule ∥ cancel of the same appointment | either reschedule 200 then cancel 200, or cancel 200 then reschedule 409; never both changed inconsistently |
+
 ## 7. Seed data (deterministic, `pnpm db:seed`)
 
 - Dealerships: `DLR-01` Northside Service Center, `DLR-02` Riverside Auto Care, `DLR-03` Airport Road Service;
@@ -391,7 +461,7 @@ serviceType, technician (skills), serviceBay, parts `[{sku,name,qty}]`, `history
 
 ## 8. Web app (client harness built from the design)
 
-Routes: `/book` (default) · `/appointments` · `/appointments/:reference` · `/board`.
+Routes: `/book` (default) · `/appointments` · `/appointments/:reference` · `/appointments/:reference/reschedule` · `/board`.
 Design reference: `design/screens/01..03`. Reproduce layout, copy and states; inline styles become CSS modules
 using the tokens below.
 
@@ -416,6 +486,12 @@ Book screen behaviour:
   {lead} hours ahead."
 - Summary sidebar shows the `proposed` bay/tech; Confirm shows "Checking bay and technician…"; 201 → confirmation
   panel; 409 → warning panel listing alternatives as buttons and refetch availability. Fresh `bookingSessionId` per flow.
+
+Reschedule screen (S7): opened from the record's **Reschedule** button (shown for `CONFIRMED`, not checked in, start in
+the future). Vehicle, service and dealership are fixed; a "Current" card shows the existing slot. Same date strip, slot
+grid, labels, same-day notice and blocked panels as Book, with availability requested using `excludeReference`; the
+current slot is marked "Current" and not selectable. "Move appointment" → "Checking bay and technician…" → 200 returns
+to the record with the notice "Appointment moved to {date} {time}."; 409 → the Book warning panel with alternatives.
 
 Board: advisor view; blocks coloured by status/channel (same-day blocks tagged "Express"); a confirmed same-day or
 today's block has a **Check in** action; `NO_SHOW` blocks shown struck-through.
