@@ -22,8 +22,8 @@ test('book an advance appointment, open the record, cancel it and see the slot f
   await expect(page.getByRole('heading', { level: 1, name: SERVICE })).toBeVisible();
   await page.getByRole('button', { name: 'Cancel appointment' }).click();
   const dialog = page.getByRole('dialog');
-  await dialog.getByRole('button', { name: 'Confirm cancellation' }).click();
-  await expect(page.getByText('This appointment has been cancelled.')).toBeVisible();
+  await dialog.getByRole('button', { name: 'Yes, cancel it' }).click();
+  await expect(page.getByText('This appointment is cancelled.')).toBeVisible();
   await expect(page.getByText('Cancelled', { exact: true }).first()).toBeVisible();
   await expect(page.getByRole('button', { name: 'Cancel appointment' })).toHaveCount(0);
 

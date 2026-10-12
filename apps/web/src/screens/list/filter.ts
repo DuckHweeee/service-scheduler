@@ -5,7 +5,7 @@ export type ListTab = 'upcoming' | 'past' | 'cancelled';
 export const TABS: { id: ListTab; label: string }[] = [
   { id: 'upcoming', label: 'Upcoming' },
   { id: 'past', label: 'Past' },
-  { id: 'cancelled', label: 'Cancelled & no-show' },
+  { id: 'cancelled', label: 'Cancelled or missed' },
 ];
 
 /** Which tab an appointment belongs to: confirmed ones split on whether they have already ended. */

@@ -37,7 +37,7 @@ describe('My appointments', () => {
     await user.click(screen.getByRole('tab', { name: /Cancelled/ }));
     expect(rows().map((r) => r.getAttribute('aria-label'))).toEqual([
       'Wheel alignment, Tue 13 Oct 10:00, Cancelled',
-      'Air filter replacement, Tue 6 Oct 10:00, No-show',
+      'Air filter replacement, Tue 6 Oct 10:00, Missed',
     ]);
   });
 
@@ -47,5 +47,15 @@ describe('My appointments', () => {
     expect(await screen.findByText('No upcoming appointments.')).toBeInTheDocument();
     const panel = screen.getByRole('tabpanel');
     expect(within(panel).getByRole('link', { name: 'Book a service' })).toHaveAttribute('href', '/book');
+  });
+
+  it('F5-5 list tabs use the scenario clock in mock mode', async () => {
+    window.history.replaceState({}, '', '/appointments?mock=cutoff');
+    renderAt(<AppointmentsScreen />, '/appointments?mock=cutoff');
+    // 15:20 mock time: today's 13:00 brake job has ended, so it is Past, not Upcoming.
+    await screen.findByRole('link', { name: /General inspection/ });
+    expect(rows().map((r) => r.getAttribute('aria-label'))).toEqual([
+      'General inspection, Mon 12 Oct 10:00, Confirmed',
+    ]);
   });
 });

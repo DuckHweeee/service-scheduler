@@ -41,7 +41,7 @@ describe('Service board', () => {
     expect(within(noShow as HTMLElement).queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('check in shows the LATE_ARRIVAL problem for a same-day job past its grace period', async () => {
+  it('F5-8 check in explains in plain words that a same-day job past its grace period was released', async () => {
     const user = userEvent.setup();
     // Started 08:00, grace 15 min, now 09:10.
     const late = addAppointment({
@@ -57,8 +57,12 @@ describe('Service board', () => {
     // Each job shows on its bay row and its technician row; either button works.
     await user.click((await screen.findAllByRole('button', { name: new RegExp(`^Check in ${short}`) }))[0]!);
 
-    const status = await screen.findByText(/arrived more than 15 minutes late/i);
-    expect(status.closest('[role="status"]')).toHaveTextContent('LATE_ARRIVAL');
+    // F5-8: a plain, informational sentence - no raw code, not styled as a failure.
+    const status = await screen.findByText(/more than 15 minutes late/i);
+    const box = status.closest('[role="status"]')!;
+    expect(box).not.toHaveTextContent('LATE_ARRIVAL');
+    expect(box.className).not.toMatch(/msgErr/);
+    expect(box).toHaveTextContent(/released/);
     // The board refreshes: the job is now a no-show and no longer offers Check in.
     await vi.waitFor(() => expect(screen.queryByRole('button', { name: new RegExp(`^Check in ${short}`) })).not.toBeInTheDocument());
   });

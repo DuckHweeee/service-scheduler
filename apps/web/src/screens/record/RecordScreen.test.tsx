@@ -13,7 +13,8 @@ afterEach(() => vi.useRealTimers());
 
 const REF = 'APT-20261008-0409';
 
-function renderRecord(ref = REF) {
+function renderRecord(ref = REF, mock?: string) {
+  if (mock) window.history.replaceState({}, '', `/appointments/${ref}?mock=${mock}`);
   return renderAt(
     <Routes>
       <Route path="/appointments/:reference" element={<RecordScreen />} />
@@ -28,7 +29,7 @@ describe('Appointment record', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Brake pad replacement' })).toBeInTheDocument();
     expect(screen.getByText('Confirmed', { selector: 'span' })).toBeInTheDocument();
     expect(screen.getByText(/Thursday 8 October 2026 ·/)).toBeInTheDocument();
-    expect(screen.getByText('Brakes ✓ required')).toBeInTheDocument();
+    expect(screen.getByText('Brakes ✓ needed for this job')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Reschedule' })).toHaveAttribute('href', `/appointments/${REF}/reschedule`);
     expect(screen.queryByText('Express · same-day')).not.toBeInTheDocument();
 
@@ -44,13 +45,13 @@ describe('Appointment record', () => {
     ]);
 
     const table = screen.getByRole('table');
-    for (const name of ['Booked via', 'Time', 'Booked on']) {
+    for (const name of ['Booking number', 'Booked as', 'Time', 'Booked on']) {
       expect(within(table).getByRole('rowheader', { name })).toBeInTheDocument();
     }
     expect(within(table).getByText('Advance booking')).toBeInTheDocument();
     expect(within(table).getByText('Wed 7 Oct 2026, 14:02')).toBeInTheDocument();
     expect(within(table).queryByText('service_bay_id')).not.toBeInTheDocument();
-    expect(screen.getByText('Reference IDs (for support)')).toBeInTheDocument();
+    expect(screen.getByText('Reference numbers (give these to support)')).toBeInTheDocument();
   });
 
   it('shows the express tag and late-arrival notice for same-day appointments', async () => {
@@ -100,11 +101,11 @@ describe('Appointment record', () => {
     renderRecord();
     await user.click(await screen.findByRole('button', { name: 'Cancel appointment' }));
     await user.type(screen.getByRole('textbox', { name: /Reason/ }), 'Change of plans');
-    await user.click(screen.getByRole('button', { name: 'Confirm cancellation' }));
+    await user.click(screen.getByRole('button', { name: 'Yes, cancel it' }));
     expect(await screen.findByText('Cancelled', { selector: 'span' })).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Cancel appointment' })).not.toBeInTheDocument();
-    expect(screen.getByText(/has been cancelled/)).toBeInTheDocument();
+    expect(screen.getByText(/This appointment is cancelled/)).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent(`Appointment ${REF} cancelled.`);
     expect(screen.getByText('Appointment cancelled', { selector: 'span' })).toBeInTheDocument();
   });
@@ -113,12 +114,37 @@ describe('Appointment record', () => {
     const user = userEvent.setup();
     renderAt(<App />, `/appointments/${REF}`);
     await user.click(await screen.findByRole('button', { name: 'Cancel appointment' }));
-    await user.click(screen.getByRole('button', { name: 'Confirm cancellation' }));
-    await screen.findByText(/has been cancelled/);
+    await user.click(screen.getByRole('button', { name: 'Yes, cancel it' }));
+    await screen.findByText(/This appointment is cancelled/);
     await user.click(within(screen.getByRole('navigation', { name: 'Breadcrumb' })).getByRole('link', { name: 'My appointments' }));
     await user.click(await screen.findByRole('tab', { name: /Cancelled/ }));
     expect(await screen.findByRole('link', { name: /Brake pad replacement.*Cancelled/ })).toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole('tab', { name: /Upcoming/ })).toHaveTextContent('0'));
+  });
+});
+
+describe('W6-F5 record findings', () => {
+  it('F5-5 uses the scenario clock in mock mode: after the 15:20 cutoff the 13:00 appointment is no longer upcoming', async () => {
+    renderRecord(REF, 'cutoff');
+    await screen.findByRole('heading', { level: 1, name: 'Brake pad replacement' });
+    expect(screen.queryByRole('link', { name: 'Reschedule' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cancel appointment' })).not.toBeInTheDocument();
+  });
+
+  it('F5-9 late-release warning and Add to calendar only show for upcoming, not-checked-in appointments', async () => {
+    const checkedIn = addAppointment({ channel: 'SAME_DAY', checkedInAtMs: Date.now() });
+    const past = addAppointment({ channel: 'SAME_DAY', startMin: 8 * 60, endMin: 8 * 60 + 30 });
+    for (const a of [checkedIn, past]) {
+      const { unmount } = renderRecord(a.reference);
+      await screen.findByRole('heading', { level: 1 });
+      expect(screen.queryByText(/more than 15 minutes late/)).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Add to calendar' })).not.toBeInTheDocument();
+      unmount();
+    }
+    const upcoming = addAppointment({ channel: 'SAME_DAY' });
+    renderRecord(upcoming.reference);
+    expect(await screen.findByText(/more than 15 minutes late/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add to calendar' })).toBeInTheDocument();
   });
 });
 

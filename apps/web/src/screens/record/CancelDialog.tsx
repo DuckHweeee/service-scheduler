@@ -3,7 +3,6 @@ import type { KeyboardEvent } from 'react';
 import styles from './Record.module.css';
 
 interface Props {
-  reference: string;
   summary: string;
   pending: boolean;
   error: string | null;
@@ -14,7 +13,7 @@ interface Props {
 const FOCUSABLE = 'button:not([disabled]), textarea:not([disabled]), a[href]';
 
 /** Modal ARIA dialog with a focus trap. Escape and the backdrop close it; focus returns to the opener. */
-export function CancelDialog({ reference, summary, pending, error, onConfirm, onClose }: Props) {
+export function CancelDialog({ summary, pending, error, onConfirm, onClose }: Props) {
   const titleId = useId();
   const descId = useId();
   const box = useRef<HTMLDivElement>(null);
@@ -66,7 +65,7 @@ export function CancelDialog({ reference, summary, pending, error, onConfirm, on
           Cancel this appointment?
         </h2>
         <p id={descId} className={styles.dialogText}>
-          {`${summary} (${reference}) will be released. The bay and technician become available to other customers.`}
+          {`${summary} will be cancelled. Its time becomes free for other customers.`}
         </p>
         <label className={styles.dialogLabel}>
           <span>Reason (optional)</span>
@@ -93,7 +92,7 @@ export function CancelDialog({ reference, summary, pending, error, onConfirm, on
             onClick={() => onConfirm(reason.trim())}
             disabled={pending}
           >
-            {pending ? 'Cancelling…' : 'Confirm cancellation'}
+            {pending ? 'Cancelling…' : 'Yes, cancel it'}
           </button>
         </div>
       </div>

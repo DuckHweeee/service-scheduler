@@ -4,6 +4,7 @@ import type { CSSProperties } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { ApiError, errorMessage } from '../../api/client.js';
 import { useBoard, useCheckIn, useDealerships } from '../../api/hooks.js';
+import { businessNow } from '../../lib/now.js';
 import { addDays, dateLong, todayIn, weekdayName } from '../../lib/time.js';
 import { BAY_TYPE_LABEL } from '../book/labels.js';
 import styles from './Board.module.css';
@@ -13,7 +14,7 @@ const SKILL_SHORT: Record<string, string> = {
   GENERAL: 'General',
   BRAKES: 'Brakes',
   ALIGNMENT: 'Alignment',
-  EV_HIGH_VOLTAGE: 'EV HV',
+  EV_HIGH_VOLTAGE: 'EV high-voltage',
 };
 
 const skillsText = (skills: string[]) =>
@@ -44,7 +45,7 @@ function Block({ block, row, board, search, today, checking, onCheckIn }: BlockP
   const cls = [styles.block, noShow && styles.noShow, checkedIn && styles.checkedIn, express && styles.expressBlock, span < 2 && styles.narrow]
     .filter(Boolean)
     .join(' ');
-  const state = noShow ? 'no-show' : checkedIn ? 'checked in' : 'confirmed';
+  const state = noShow ? 'missed' : checkedIn ? 'checked in' : 'confirmed';
   // One-column blocks (30 min) only have room for one chip: the Check in action wins, the stripe marks Express.
   const showTag = express && (span >= 2 || !canCheckIn);
 
@@ -175,23 +176,38 @@ export function BoardScreen() {
 
   const dealership = dealerships.data?.items.find((d) => d.id === dealershipId);
   const tz = dealership?.timezone ?? 'Asia/Ho_Chi_Minh';
-  const today = todayIn(tz);
+  const today = todayIn(tz, businessNow(tz));
   const date = pickedDate ?? today;
 
   const board = useBoard(dealershipId, date, dealerships.isSuccess);
   const checkIn = useCheckIn();
-  const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string; code?: string } | null>(null);
+  const [message, setMessage] = useState<{ kind: 'ok' | 'info' | 'error'; text: string } | null>(null);
 
   const doCheckIn = (reference: string) => {
     setMessage(null);
     checkIn.mutate(reference, {
       onSuccess: (a) => setMessage({ kind: 'ok', text: `Checked in ${shortRef(a.reference)} · ${a.serviceType.name}.` }),
-      onError: (err) =>
-        setMessage({
-          kind: 'error',
-          text: errorMessage(err),
-          code: err instanceof ApiError ? err.problem.code : undefined,
-        }),
+      onError: (err) => {
+        const code = err instanceof ApiError ? err.problem.code : undefined;
+        const block = [...(data?.bays ?? []), ...(data?.technicians ?? [])]
+          .flatMap((r) => r.blocks)
+          .find((b) => b.reference === reference);
+        const what = block ? `${shortRef(reference)} · ${block.serviceTypeName}` : 'This appointment';
+        if (code === 'LATE_ARRIVAL') {
+          const grace = dealership?.sameDayPolicy.lateGraceMin;
+          setMessage({
+            kind: 'info',
+            text: `${what} came${grace === undefined ? ' too late' : ` more than ${grace} minutes late`}, so it was released. Its time is free for others.`,
+          });
+        } else if (code === 'APPOINTMENT_NOT_ACTIVE') {
+          setMessage({
+            kind: 'error',
+            text: `${what} can't be checked in. It was cancelled or is already checked in.`,
+          });
+        } else {
+          setMessage({ kind: 'error', text: errorMessage(err) });
+        }
+      },
     });
   };
 
@@ -211,6 +227,7 @@ export function BoardScreen() {
             {`Bays and technicians for ${dateLong(date)}, ${opens}–${closes}`}
             {isToday && <span className={styles.todayTag}>Today</span>}
           </p>
+          <p className={styles.hint}>A bay is the space where a vehicle is worked on. Each job uses one bay and one technician.</p>
         </div>
         <div className={styles.controls}>
           <label className={styles.selectLabel}>
@@ -248,13 +265,14 @@ export function BoardScreen() {
         </div>
       </div>
 
-      <div role="status" aria-live="polite" className={message ? (message.kind === 'ok' ? styles.msgOk : styles.msgErr) : styles.srOnly}>
-        {message && (
-          <>
-            {message.code && <span className={styles.msgCode}>{message.code}</span>}
-            {message.text}
-          </>
-        )}
+      <div
+        role="status"
+        aria-live="polite"
+        className={
+          message ? (message.kind === 'ok' ? styles.msgOk : message.kind === 'info' ? styles.msgInfo : styles.msgErr) : styles.srOnly
+        }
+      >
+        {message?.text}
       </div>
 
       {(dealerships.isPending || board.isPending) && !board.isError && !dealerships.isError && (
@@ -298,11 +316,11 @@ export function BoardScreen() {
         </span>
         <span>
           <i className={styles.swExpress} aria-hidden="true" />
-          Express (same-day)
+          Express (booked today)
         </span>
         <span>
           <i className={styles.swNoShow} aria-hidden="true" />
-          No-show (released)
+          Missed (time released)
         </span>
       </div>
     </main>

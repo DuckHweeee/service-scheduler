@@ -15,6 +15,10 @@ interface Props {
   onConfirm: () => void;
   /** Defaults to "Confirm appointment"; the reschedule screen says "Move appointment". */
   confirmLabel?: string;
+  /** Show the button (disabled) even before a time is chosen. Reschedule uses it; Book shows it after a pick. */
+  showDisabledConfirm?: boolean;
+  /** Sentence shown while no time is chosen. */
+  emptyText?: string;
 }
 
 function Tick() {
@@ -48,13 +52,15 @@ export function Summary({
   error,
   onConfirm,
   confirmLabel = 'Confirm appointment',
+  showDisabledConfirm = false,
+  emptyText = 'Pick a free time to see your bay and technician.',
 }: Props) {
   const proposed = selected?.proposed ?? null;
   const window = selected ? `${selected.startTime}–${selected.endTime}` : '';
   return (
     <aside aria-labelledby="h-summary" className={styles.summary}>
       <h2 id="h-summary" className={styles.summaryTitle}>
-        Your booking
+        Your appointment
       </h2>
       <dl className={styles.facts}>
         <div>
@@ -76,7 +82,7 @@ export function Summary({
       </dl>
 
       <div className={styles.check}>
-        <h3 className={styles.checkTitle}>AVAILABILITY CHECK</h3>
+        <h3 className={styles.checkTitle}>WHAT WE&apos;LL RESERVE</h3>
         {selected && proposed ? (
           <>
             <ul className={styles.checkList}>
@@ -93,19 +99,19 @@ export function Summary({
                 <Tick />
                 <div>
                   <span className={styles.checkMain}>{`Technician · ${proposed.technician.name}`}</span>
-                  <span className={styles.checkSub}>{`Qualified: ${skill} · free ${window}`}</span>
+                  <span className={styles.checkSub}>{`Trained for ${skill} · free ${window}`}</span>
                 </div>
               </li>
               <li>
                 <Tick />
                 <div>
-                  <span className={styles.checkMain}>Full duration covered</span>
-                  <span className={styles.checkSub}>{`${durationLabel} with no overlapping bookings`}</span>
+                  <span className={styles.checkMain}>Enough time for the whole job</span>
+                  <span className={styles.checkSub}>{`${durationLabel}, with no other booking in the way`}</span>
                 </div>
               </li>
             </ul>
             <p className={styles.checkNote}>
-              Both resources are re-checked and reserved together the moment you confirm.
+              We check again and reserve both the moment you confirm.
             </p>
             {error ? (
               <p role="alert" className={styles.inlineError}>
@@ -124,13 +130,16 @@ export function Summary({
           </>
         ) : (
           <>
-            <p className={styles.checkEmpty}>
-              Choose an open time to check for a free bay and a qualified technician.
-            </p>
+            <p className={styles.checkEmpty}>{emptyText}</p>
             {error ? (
               <p role="alert" className={styles.inlineError}>
                 {error}
               </p>
+            ) : null}
+            {showDisabledConfirm ? (
+              <button type="button" className={styles.confirm} disabled>
+                {confirmLabel}
+              </button>
             ) : null}
           </>
         )}

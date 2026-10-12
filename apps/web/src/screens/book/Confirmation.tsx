@@ -36,7 +36,7 @@ export function Confirmation({ record, onReset }: Props) {
             </svg>
             Confirmed
           </span>
-          <span className={styles.ref}>{record.reference}</span>
+          <span className={styles.ref}>{`Booking number ${record.reference}`}</span>
         </div>
         <h1 id="h-done" ref={heading} tabIndex={-1} className={styles.doneTitle}>
           {`You're booked for ${dateLong(record.localDate)}, ${record.startTime}`}
@@ -51,7 +51,7 @@ export function Confirmation({ record, onReset }: Props) {
           <div className={styles.fact}>
             <span className={styles.factLabel}>CUSTOMER</span>
             <span className={styles.factMain}>{record.customer.fullName}</span>
-            <span className={styles.factSub}>{record.customer.id}</span>
+            <span className={styles.factSub}>{record.customer.email ?? record.customer.phone ?? ''}</span>
           </div>
           <div className={styles.fact}>
             <span className={styles.factLabel}>VEHICLE</span>
@@ -60,31 +60,33 @@ export function Confirmation({ record, onReset }: Props) {
             >{`${record.vehicle.modelYear} ${record.vehicle.modelName}`}</span>
             <span
               className={styles.factSub}
-            >{`${record.vehicle.id} · VIN ••••${record.vehicle.vinLast4} · ${record.vehicle.plate ?? 'no plate'}`}</span>
+            >{`Plate ${record.vehicle.plate ?? 'none'} · VIN ends ${record.vehicle.vinLast4}`}</span>
           </div>
           <div className={styles.fact}>
             <span className={styles.factLabel}>TECHNICIAN</span>
             <span className={styles.factMain}>{record.technician.name}</span>
             <span
               className={styles.factSub}
-            >{`${record.technician.id} · ${SKILL_LABEL[record.serviceType.requiredSkill]}`}</span>
+            >{`${SKILL_LABEL[record.serviceType.requiredSkill]} technician`}</span>
           </div>
           <div className={styles.fact}>
             <span className={styles.factLabel}>SERVICE BAY</span>
             <span className={styles.factMain}>{record.serviceBay.name}</span>
             <span
               className={styles.factSub}
-            >{`${record.serviceBay.id} · ${BAY_TYPE_LABEL[record.serviceBay.bayType]}`}</span>
+            >{BAY_TYPE_LABEL[record.serviceBay.bayType]}</span>
           </div>
         </div>
 
-        <p
-          className={styles.doneNote}
-        >{`Bay and technician are reserved for ${range}. We'll remind you the day before.`}</p>
+        <p className={styles.doneNote}>
+          {record.channel === 'SAME_DAY'
+            ? `Your bay and technician are held for ${range}. Please arrive on time. If you are more than ${record.lateGraceMin} minutes late, we give your time to someone else.`
+            : `Your bay and technician are held for ${range}. We'll remind you the day before.`}
+        </p>
 
         <div className={styles.doneActions}>
           <Link to={{ pathname: `/appointments/${record.reference}`, search }} className={styles.primaryLink}>
-            View appointment record
+            See your appointment
           </Link>
           <button type="button" className={styles.secondary} onClick={onReset}>
             Book another service

@@ -1,10 +1,11 @@
 import type { AppointmentDetail } from '@scheduler/contracts';
 import { useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ApiError, errorMessage } from '../../api/client.js';
 import { keys, useAppointment, useCancelAppointment } from '../../api/hooks.js';
+import { businessNow } from '../../lib/now.js';
 import { dateLong, dateTimeShort, durationText } from '../../lib/time.js';
 import { BAY_TYPE_LABEL, SKILL_LABEL } from '../book/labels.js';
 import { CancelDialog } from './CancelDialog.js';
@@ -23,7 +24,7 @@ const ICON = {
 
 const clock = (iso: string) => iso.slice(11, 19);
 
-function LinkedCard({ label, icon, title, id, children }: { label: string; icon: ReactNode; title: string; id: string; children: ReactNode }) {
+function LinkedCard({ label, icon, title, children }: { label: string; icon: ReactNode; title: string; children: ReactNode }) {
   return (
     <article className={styles.card}>
       <div className={styles.cardHead}>
@@ -34,7 +35,6 @@ function LinkedCard({ label, icon, title, id, children }: { label: string; icon:
       </div>
       <div className={styles.cardTitleBox}>
         <h3 className={styles.cardTitle}>{title}</h3>
-        <span className={styles.cardId}>{id}</span>
       </div>
       {children}
     </article>
@@ -42,8 +42,16 @@ function LinkedCard({ label, icon, title, id, children }: { label: string; icon:
 }
 
 function Record({ a }: { a: AppointmentDetail }) {
-  const { search, state: navState } = useLocation();
-  const moved = (navState as { notice?: unknown } | null)?.notice;
+  const { search, pathname, state: navState } = useLocation();
+  const navigate = useNavigate();
+  // The "moved" notice arrives in history state. Keep it in local state and clear the history entry, so Back and
+  // reloads do not show it again.
+  const [moved] = useState(() => (navState as { notice?: unknown } | null)?.notice);
+  const noticeRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => noticeRef.current?.focus(), []);
+  useEffect(() => {
+    if (moved !== undefined) void navigate({ pathname, search }, { replace: true, state: null });
+  }, [moved, navigate, pathname, search]);
   const cancel = useCancelAppointment();
   const [dialog, setDialog] = useState(false);
   const [justCancelled, setJustCancelled] = useState(false);
@@ -52,18 +60,18 @@ function Record({ a }: { a: AppointmentDetail }) {
   const state = displayStatus(a);
   const range = `${a.startTime}–${a.endTime}`;
   const isConfirmed = a.status === 'CONFIRMED';
-  const canCancel = isConfirmed && !a.checkedInAt && Date.parse(a.startAt) > Date.now();
+  const canCancel = isConfirmed && !a.checkedInAt && Date.parse(a.startAt) > businessNow(a.dealership.timezone);
   const sameDay = a.channel === 'SAME_DAY';
 
   const tz = a.dealership.timezone;
   const vehicle = `${a.vehicle.modelYear} ${a.vehicle.modelName}${a.vehicle.plate ? ` · ${a.vehicle.plate}` : ''}`;
   const fields: [string, string][] = [
-    ['Reference', a.reference],
+    ['Booking number', a.reference],
     ['Status', STATUS_LABEL[state]],
-    ['Booked via', sameDay ? 'Same-day express' : 'Advance booking'],
+    ['Booked as', sameDay ? 'Same-day express' : 'Advance booking'],
     ['Service', a.serviceType.name],
     ['Date', `${dateLong(a.localDate)} ${a.localDate.slice(0, 4)}`],
-    ['Time', `${range} (dealership time)`],
+    ['Time', `${range} (local time at the dealership)`],
     ['Duration', durationText(a.durationMin)],
     ['Dealership', a.dealership.name],
     ['Service bay', a.serviceBay.name],
@@ -124,7 +132,7 @@ function Record({ a }: { a: AppointmentDetail }) {
               )}
               {STATUS_LABEL[state]}
             </span>
-            <span className={styles.ref}>{a.reference}</span>
+            <span className={styles.ref}>{`Booking number ${a.reference}`}</span>
             {sameDay && <span className={styles.express}>Express · same-day</span>}
           </div>
           <h1 id="h-appt" className={styles.h1}>
@@ -136,7 +144,7 @@ function Record({ a }: { a: AppointmentDetail }) {
             {` · ${a.dealership.name}`}
           </p>
         </div>
-        {isConfirmed && (
+        {canCancel && (
           <div className={styles.actions}>
             <button type="button" className={styles.btnPrimary} onClick={() => downloadIcs(a)}>
               Add to calendar
@@ -156,28 +164,27 @@ function Record({ a }: { a: AppointmentDetail }) {
       </section>
 
       {typeof moved === 'string' && a.status === 'CONFIRMED' && (
-        <p role="status" className={styles.notice}>
+        <p ref={noticeRef} tabIndex={-1} role="status" className={styles.notice}>
           {moved}
         </p>
       )}
       {justCancelled && a.status === 'CANCELLED' && (
-        <p className={styles.notice}>This appointment has been cancelled. The bay and technician were released.</p>
+        <p className={styles.notice}>This appointment is cancelled. Its time is free for other customers.</p>
       )}
-      {sameDay && isConfirmed && (
+      {sameDay && canCancel && (
         <p className={styles.notice}>
-          {`Same-day bookings are released if you are more than ${a.lateGraceMin} minutes late. Please arrive on time.`}
+          {`Please arrive on time. If you are more than ${a.lateGraceMin} minutes late, we give your time to someone else.`}
         </p>
       )}
 
       <section aria-labelledby="h-assoc" className={styles.group}>
         <h2 id="h-assoc" className={styles.groupTitle}>
-          LINKED TO THIS APPOINTMENT
+          WHO AND WHAT IS INVOLVED
         </h2>
         <div className={styles.cards}>
           <LinkedCard
             label="CUSTOMER"
             title={a.customer.fullName}
-            id={a.customer.id}
             icon={
               <>
                 <circle cx="12" cy="8" r="4" />
@@ -190,7 +197,6 @@ function Record({ a }: { a: AppointmentDetail }) {
           <LinkedCard
             label="VEHICLE"
             title={`${a.vehicle.modelYear} ${a.vehicle.modelName}`}
-            id={a.vehicle.id}
             icon={
               <>
                 <path d="M3 16v-4l2-5h14l2 5v4" />
@@ -200,12 +206,11 @@ function Record({ a }: { a: AppointmentDetail }) {
               </>
             }
           >
-            <p className={`${styles.cardText} ${styles.mono}`}>{`VIN ••••${a.vehicle.vinLast4} · ${a.vehicle.plate ?? 'no plate'}`}</p>
+            <p className={`${styles.cardText} ${styles.mono}`}>{`Plate ${a.vehicle.plate ?? 'none'} · VIN ends ${a.vehicle.vinLast4}`}</p>
           </LinkedCard>
           <LinkedCard
             label="TECHNICIAN"
             title={a.technician.name}
-            id={a.technician.id}
             icon={<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.5-.5-.5-2.5z" />}
           >
             <div className={styles.chips}>
@@ -213,7 +218,7 @@ function Record({ a }: { a: AppointmentDetail }) {
                 const required = s === a.serviceType.requiredSkill;
                 return (
                   <span key={s} className={required ? styles.chipReq : styles.chip}>
-                    {required ? `${SKILL_LABEL[s]} ✓ required` : SKILL_LABEL[s]}
+                    {required ? `${SKILL_LABEL[s]} ✓ needed for this job` : SKILL_LABEL[s]}
                   </span>
                 );
               })}
@@ -222,7 +227,6 @@ function Record({ a }: { a: AppointmentDetail }) {
           <LinkedCard
             label="SERVICE BAY"
             title={a.serviceBay.name}
-            id={a.serviceBay.id}
             icon={
               <>
                 <path d="M3 21V9l9-6 9 6v12" />
@@ -248,7 +252,7 @@ function Record({ a }: { a: AppointmentDetail }) {
             {a.parts.map((p) => (
               <li key={p.sku}>
                 <span>{p.name}</span>
-                <span className={styles.mono}>{`${p.sku} × ${p.qty}`}</span>
+                <span className={styles.mono}>{`Part ${p.sku} × ${p.qty}`}</span>
               </li>
             ))}
           </ul>
@@ -261,7 +265,7 @@ function Record({ a }: { a: AppointmentDetail }) {
             <h2 id="h-fields" className={styles.h2}>
               Appointment details
             </h2>
-            <span className={styles.panelNote}>Your booking at a glance</span>
+            <span className={styles.panelNote}>The main facts</span>
           </div>
           <div className={styles.tableWrap}>
             <table className={styles.table}>
@@ -269,14 +273,14 @@ function Record({ a }: { a: AppointmentDetail }) {
                 {fields.map(([k, v]) => (
                   <tr key={k}>
                     <th scope="row">{k}</th>
-                    <td className={k === 'Reference' ? styles.mono : undefined}>{v}</td>
+                    <td className={k === 'Booking number' ? styles.mono : undefined}>{v}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
           <details className={styles.ids}>
-            <summary>Reference IDs (for support)</summary>
+            <summary>Reference numbers (give these to support)</summary>
             <dl>
               {ids.map(([k, v]) => (
                 <div key={k}>
@@ -314,7 +318,6 @@ function Record({ a }: { a: AppointmentDetail }) {
 
       {dialog && (
         <CancelDialog
-          reference={a.reference}
           summary={`${a.serviceType.name}, ${dateLong(a.localDate)} ${range}`}
           pending={cancel.isPending}
           error={cancel.isError ? errorMessage(cancel.error) : null}
@@ -349,11 +352,11 @@ export function RecordScreen() {
       <main className={styles.main}>
         <section className={styles.empty} aria-labelledby="h-missing">
           <h1 id="h-missing" className={styles.emptyTitle}>
-            {notFound ? 'Appointment not found' : 'Could not load this appointment'}
+            {notFound ? 'Appointment not found' : "We couldn't open this appointment"}
           </h1>
-          <p className={styles.emptyText}>
+          <p className={styles.emptyText} role={notFound ? undefined : 'alert'}>
             {notFound
-              ? `We couldn't find an appointment with reference ${reference}. Check the reference, or pick it from your list.`
+              ? `We couldn't find an appointment with booking number ${reference}. Check the number, or pick the appointment from your list.`
               : errorMessage(query.error)}
           </p>
           <div className={styles.emptyActions}>

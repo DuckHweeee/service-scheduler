@@ -99,6 +99,7 @@
 }
 
 .msgOk,
+.msgInfo,
 .msgErr {
   padding: 12px 14px;
   font-size: 14px;
@@ -110,6 +111,16 @@
 .msgOk {
   background: var(--accent-soft);
   color: var(--accent-hover);
+}
+.msgInfo {
+  background: var(--paper);
+  color: var(--ink);
+  border-left: 3px solid var(--accent);
+}
+.hint {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--muted-2);
 }
 .msgErr {
   background: var(--warn-bg);

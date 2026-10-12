@@ -58,9 +58,9 @@ export async function pickService(page: Page, serviceName: string, date: string)
   await expect(dateButton(page, date)).toHaveAttribute('aria-pressed', 'true');
 }
 
-/** Follows "View appointment record" from the confirmation panel and returns the reference. */
+/** Follows "See your appointment" from the confirmation panel and returns the reference. */
 export async function openRecordFromConfirmation(page: Page): Promise<string> {
-  await page.getByRole('link', { name: 'View appointment record' }).click();
+  await page.getByRole('link', { name: 'See your appointment' }).click();
   await expect(page).toHaveURL(/\/appointments\/APT-/);
   return new URL(page.url()).pathname.split('/').pop()!;
 }

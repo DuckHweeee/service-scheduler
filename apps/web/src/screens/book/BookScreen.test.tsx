@@ -2,7 +2,15 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
+import {
+  appointmentDetailExample,
+  dealerships as dealershipsExample,
+  serviceTypes as serviceTypesExample,
+  vehicles as vehiclesExample,
+} from '@scheduler/contracts/fixtures';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { BookForm } from './BookForm.js';
+import { Confirmation } from './Confirmation.js';
 import { BookScreen } from './BookScreen.js';
 
 // Thursday 2026-10-08, 09:10 in Asia/Ho_Chi_Minh. Only Date is faked so timers keep working.
@@ -45,7 +53,7 @@ describe('Book screen', () => {
       'aria-pressed',
       'false',
     );
-    expect(await screen.findByText(/Full duration covered/)).toBeInTheDocument();
+    expect(await screen.findByText(/Enough time for the whole job/)).toBeInTheDocument();
   });
 
   it('changing the service clears the slot and auto-selects the first available', async () => {
@@ -63,7 +71,7 @@ describe('Book screen', () => {
       'aria-pressed',
       'true',
     );
-    await waitFor(() => expect(screen.getByText(/Live availability · 45 min job/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(/this job takes 45 min/)).toBeInTheDocument());
     await waitFor(async () => {
       group = await slotGroup();
       const slots = enabledSlots(group);
@@ -157,7 +165,7 @@ describe('Book screen', () => {
       await screen.findByRole('heading', { name: /You're booked for Friday 9 October, \d\d:\d\d/ }),
     ).toBeInTheDocument();
     expect(screen.getByText('Confirmed')).toBeInTheDocument();
-    const link = screen.getByRole('link', { name: 'View appointment record' });
+    const link = screen.getByRole('link', { name: 'See your appointment' });
     expect(link.getAttribute('href')).toMatch(/^\/appointments\/APT-20261009-\d{4}/);
     expect(screen.getByText('Linh Tran')).toBeInTheDocument();
     expect(screen.getByText('SERVICE BAY')).toBeInTheDocument();
@@ -176,7 +184,7 @@ describe('Book screen', () => {
     await user.click(await screen.findByRole('button', { name: 'Confirm appointment' }));
 
     const alert = await screen.findByRole('alert');
-    expect(alert).toHaveTextContent('That time is no longer available.');
+    expect(alert).toHaveTextContent('Someone just booked that time.');
     expect(alert).toHaveTextContent(/No Brakes-qualified technician is free for the full window/);
     const alts = within(alert).getAllByRole('button');
     expect(alts).toHaveLength(5);
@@ -187,7 +195,7 @@ describe('Book screen', () => {
     const [, dateText, startTime] = m!;
     await user.click(chosen);
 
-    expect(screen.queryByText('That time is no longer available.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Someone just booked that time.')).not.toBeInTheDocument();
     const [, day, mon] = dateText!.split(' ');
     expect(screen.getByRole('button', { name: new RegExp(`${day} ${mon}`) })).toHaveAttribute(
       'aria-pressed',
@@ -204,5 +212,59 @@ describe('Book screen', () => {
     // The next attempt goes through normally (conflict is one-shot).
     await user.click(screen.getByRole('button', { name: 'Confirm appointment' }));
     expect(await screen.findByRole('heading', { name: /You're booked for/ })).toBeInTheDocument();
+  });
+});
+
+describe('W6-F5 book findings', () => {
+  it('F5-3 after a 409 nothing is selected until the user picks a slot or an alternative', async () => {
+    const user = userEvent.setup();
+    renderBook('conflict');
+    await slotGroup();
+    await user.click(await screen.findByRole('button', { name: 'Confirm appointment' }));
+    expect(await screen.findByRole('alert')).toHaveFocus();
+    await waitFor(async () => {
+      const group = await slotGroup();
+      expect(slotButtons(group).filter((b) => b.getAttribute('aria-pressed') === 'true')).toHaveLength(0);
+    });
+    expect(screen.queryByRole('button', { name: 'Confirm appointment' })).not.toBeInTheDocument();
+    // Picking a slot by hand enables Confirm again.
+    const group = await slotGroup();
+    await user.click(enabledSlots(group)[0]!);
+    expect(await screen.findByRole('button', { name: 'Confirm appointment' })).toBeEnabled();
+  });
+
+  it('F5-6 a vehicle with no matching service shows a friendly empty state instead of crashing', () => {
+    const evOnly = serviceTypesExample.filter((s) => s.powertrains.length === 1 && s.powertrains[0] === 'EV');
+    const ice = vehiclesExample.filter((v) => v.powertrain === 'ICE');
+    const client = new QueryClient();
+    render(
+      <QueryClientProvider client={client}>
+        <MemoryRouter>
+          <BookForm dealerships={dealershipsExample} serviceTypes={evOnly} vehicles={ice} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(
+      screen.getByText('No services are available for this vehicle. Choose another vehicle.'),
+    ).toBeInTheDocument();
+  });
+
+  it('F5-7 confirmation says when reminders go out, but a same-day booking shows the late-release rule', () => {
+    const advance = { ...appointmentDetailExample, channel: 'ADVANCE' as const };
+    const { unmount } = render(
+      <MemoryRouter>
+        <Confirmation record={advance} onReset={() => {}} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText(/remind you the day before/)).toBeInTheDocument();
+    unmount();
+    const sameDay = { ...appointmentDetailExample, channel: 'SAME_DAY' as const, lateGraceMin: 20 };
+    render(
+      <MemoryRouter>
+        <Confirmation record={sameDay} onReset={() => {}} />
+      </MemoryRouter>,
+    );
+    expect(screen.queryByText(/remind you the day before/)).not.toBeInTheDocument();
+    expect(screen.getByText(/more than 20 minutes late/)).toBeInTheDocument();
   });
 });

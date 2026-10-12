@@ -18,9 +18,9 @@ test('a slot taken meanwhile gives a 409 panel with alternatives; picking one co
 
   await page.getByRole('button', { name: 'Confirm appointment' }).click();
 
-  const panel = page.getByRole('alert').filter({ hasText: 'That time is no longer available.' });
+  const panel = page.getByRole('alert').filter({ hasText: 'Someone just booked that time.' });
   await expect(panel).toBeVisible();
-  await expect(panel.getByText('Closest open times:')).toBeVisible();
+  await expect(panel.getByText('Closest free times. Pick one:')).toBeVisible();
   const alternatives = panel.getByRole('listitem').getByRole('button');
   expect(await alternatives.count()).toBeGreaterThan(0);
 
