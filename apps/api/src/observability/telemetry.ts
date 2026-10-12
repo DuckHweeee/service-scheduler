@@ -15,6 +15,17 @@ export interface BookingAttempt {
   durationMs?: number;
 }
 
+export type RescheduleOutcome = 'rescheduled' | 'unchanged' | 'rejected' | 'invalid';
+
+export interface RescheduleAttempt {
+  outcome: RescheduleOutcome;
+  /** Error code or slot status; `none` on success. */
+  reason: string;
+  dealershipId?: string;
+  serviceTypeCode?: string;
+  durationMs?: number;
+}
+
 export type SpanAttributes = Record<string, string | number | boolean>;
 
 export interface SpanHandle {
@@ -23,6 +34,7 @@ export interface SpanHandle {
 
 export interface Telemetry {
   bookingAttempt(a: BookingAttempt): void;
+  rescheduleAttempt(a: RescheduleAttempt): void;
   /** Wall time of the booking transaction, lock wait included. */
   observeReserve(seconds: number): void;
   /** Time spent acquiring the per-(dealership, day) advisory lock. */
@@ -37,6 +49,7 @@ const noopSpan: SpanHandle = { setAttributes: () => {} };
 
 export const noopTelemetry: Telemetry = {
   bookingAttempt: () => {},
+  rescheduleAttempt: () => {},
   observeReserve: () => {},
   observeLockWait: () => {},
   observeAvailability: () => {},

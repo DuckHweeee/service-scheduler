@@ -45,6 +45,8 @@ components:
             - SERVICE_NOT_EXPRESS
             - LEAD_TIME_NOT_MET
             - APPOINTMENT_NOT_CANCELLABLE
+            - APPOINTMENT_NOT_RESCHEDULABLE
+            - RESCHEDULE_SCOPE_MISMATCH
             - APPOINTMENT_NOT_ACTIVE
             - LATE_ARRIVAL
             - STOCK_BELOW_RESERVED
@@ -375,6 +377,7 @@ paths:
                             - APPOINTMENT_CANCELLED
                             - CHECKED_IN
                             - APPOINTMENT_NO_SHOW
+                            - APPOINTMENT_RESCHEDULED
                           type: string
                       required:
                         - type
@@ -654,6 +657,7 @@ paths:
                             - APPOINTMENT_CANCELLED
                             - CHECKED_IN
                             - APPOINTMENT_NO_SHOW
+                            - APPOINTMENT_RESCHEDULED
                           type: string
                       required:
                         - type
@@ -969,6 +973,7 @@ paths:
                             - APPOINTMENT_CANCELLED
                             - CHECKED_IN
                             - APPOINTMENT_NO_SHOW
+                            - APPOINTMENT_RESCHEDULED
                           type: string
                       required:
                         - type
@@ -1283,6 +1288,7 @@ paths:
                             - APPOINTMENT_CANCELLED
                             - CHECKED_IN
                             - APPOINTMENT_NO_SHOW
+                            - APPOINTMENT_RESCHEDULED
                           type: string
                       required:
                         - type
@@ -1592,6 +1598,7 @@ paths:
                             - APPOINTMENT_CANCELLED
                             - CHECKED_IN
                             - APPOINTMENT_NO_SHOW
+                            - APPOINTMENT_RESCHEDULED
                           type: string
                       required:
                         - type
@@ -1792,6 +1799,319 @@ paths:
               schema:
                 $ref: "#/components/schemas/Problem"
           description: Business conflict (e.g. SLOT_UNAVAILABLE, PARTS_UNAVAILABLE, VEHICLE_ALREADY_BOOKED, APPOINTMENT_NOT_CANCELLABLE, LATE_ARRIVAL, APPOINTMENT_NOT_ACTIVE, STOCK_BELOW_RESERVED)
+      tags:
+        - Appointments
+  /api/v1/appointments/{reference}/reschedule:
+    post:
+      parameters:
+        - in: path
+          name: reference
+          required: true
+          schema:
+            pattern: ^APT-\d{8}-\d{4}$
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              properties:
+                bookingSessionId:
+                  format: uuid
+                  pattern: ^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$
+                  type: string
+                date:
+                  pattern: ^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$
+                  type: string
+                startTime:
+                  pattern: ^([01]\d|2[0-3]):[0-5]\d$
+                  type: string
+              required:
+                - date
+                - startTime
+                - bookingSessionId
+              type: object
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                additionalProperties: false
+                properties:
+                  cancelledAt:
+                    format: date-time
+                    nullable: true
+                    pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                    type: string
+                  channel:
+                    enum:
+                      - ADVANCE
+                      - SAME_DAY
+                    type: string
+                  checkedInAt:
+                    format: date-time
+                    nullable: true
+                    pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                    type: string
+                  createdAt:
+                    format: date-time
+                    pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                    type: string
+                  customer:
+                    additionalProperties: false
+                    properties:
+                      email:
+                        nullable: true
+                        type: string
+                      fullName:
+                        type: string
+                      id:
+                        maxLength: 64
+                        minLength: 1
+                        type: string
+                      phone:
+                        nullable: true
+                        type: string
+                    required:
+                      - id
+                      - fullName
+                      - phone
+                      - email
+                    type: object
+                  dealership:
+                    additionalProperties: false
+                    properties:
+                      id:
+                        maxLength: 64
+                        minLength: 1
+                        type: string
+                      name:
+                        type: string
+                      timezone:
+                        type: string
+                    required:
+                      - id
+                      - name
+                      - timezone
+                    type: object
+                  durationMin:
+                    exclusiveMinimum: true
+                    maximum: 9007199254740991
+                    minimum: 0
+                    type: integer
+                  endAt:
+                    format: date-time
+                    pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                    type: string
+                  endTime:
+                    pattern: ^([01]\d|2[0-3]):[0-5]\d$
+                    type: string
+                  history:
+                    items:
+                      additionalProperties: false
+                      properties:
+                        detail:
+                          additionalProperties: {}
+                          type: object
+                        occurredAt:
+                          format: date-time
+                          pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                          type: string
+                        summary:
+                          type: string
+                        type:
+                          enum:
+                            - SLOT_REQUESTED
+                            - CHECK_FAILED
+                            - CHECK_PASSED
+                            - RESOURCES_RESERVED
+                            - APPOINTMENT_CREATED
+                            - APPOINTMENT_CANCELLED
+                            - CHECKED_IN
+                            - APPOINTMENT_NO_SHOW
+                            - APPOINTMENT_RESCHEDULED
+                          type: string
+                      required:
+                        - type
+                        - occurredAt
+                        - summary
+                        - detail
+                      type: object
+                    type: array
+                  lateGraceMin:
+                    maximum: 9007199254740991
+                    minimum: 0
+                    type: integer
+                  localDate:
+                    pattern: ^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$
+                    type: string
+                  parts:
+                    items:
+                      additionalProperties: false
+                      properties:
+                        name:
+                          type: string
+                        qty:
+                          exclusiveMinimum: true
+                          maximum: 9007199254740991
+                          minimum: 0
+                          type: integer
+                        sku:
+                          maxLength: 64
+                          minLength: 1
+                          type: string
+                      required:
+                        - sku
+                        - name
+                        - qty
+                      type: object
+                    type: array
+                  reference:
+                    pattern: ^APT-\d{8}-\d{4}$
+                    type: string
+                  serviceBay:
+                    additionalProperties: false
+                    properties:
+                      bayType:
+                        enum:
+                          - GENERAL_LIFT
+                          - ALIGNMENT_RACK
+                          - EV_ISOLATED
+                          - WASH_BAY
+                        type: string
+                      id:
+                        maxLength: 64
+                        minLength: 1
+                        type: string
+                      name:
+                        type: string
+                    required:
+                      - id
+                      - name
+                      - bayType
+                    type: object
+                  serviceType:
+                    additionalProperties: false
+                    properties:
+                      code:
+                        maxLength: 64
+                        minLength: 1
+                        type: string
+                      isExpress:
+                        type: boolean
+                      name:
+                        type: string
+                      requiredSkill:
+                        enum:
+                          - GENERAL
+                          - BRAKES
+                          - ALIGNMENT
+                          - EV_HIGH_VOLTAGE
+                        type: string
+                    required:
+                      - code
+                      - name
+                      - requiredSkill
+                      - isExpress
+                    type: object
+                  startAt:
+                    format: date-time
+                    pattern: ^(?:(?:\d\d[2468][048]|\d\d[13579][26]|\d\d0[48]|[02468][048]00|[13579][26]00)-02-29|\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\d|30)|(?:02)-(?:0[1-9]|1\d|2[0-8])))T(?:(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)?(?:Z|([+-](?:[01]\d|2[0-3]):[0-5]\d)))$
+                    type: string
+                  startTime:
+                    pattern: ^([01]\d|2[0-3]):[0-5]\d$
+                    type: string
+                  status:
+                    enum:
+                      - CONFIRMED
+                      - CANCELLED
+                      - NO_SHOW
+                    type: string
+                  technician:
+                    additionalProperties: false
+                    properties:
+                      id:
+                        maxLength: 64
+                        minLength: 1
+                        type: string
+                      name:
+                        type: string
+                      skills:
+                        items:
+                          enum:
+                            - GENERAL
+                            - BRAKES
+                            - ALIGNMENT
+                            - EV_HIGH_VOLTAGE
+                          type: string
+                        type: array
+                    required:
+                      - id
+                      - name
+                      - skills
+                    type: object
+                  vehicle:
+                    additionalProperties: false
+                    properties:
+                      customerId:
+                        maxLength: 64
+                        minLength: 1
+                        type: string
+                      id:
+                        maxLength: 64
+                        minLength: 1
+                        type: string
+                      modelName:
+                        type: string
+                      modelYear:
+                        maximum: 9007199254740991
+                        minimum: -9007199254740991
+                        type: integer
+                      plate:
+                        nullable: true
+                        type: string
+                      powertrain:
+                        enum:
+                          - ICE
+                          - EV
+                        type: string
+                      vinLast4:
+                        maxLength: 4
+                        minLength: 4
+                        type: string
+                    required:
+                      - id
+                      - customerId
+                      - modelYear
+                      - modelName
+                      - powertrain
+                      - vinLast4
+                      - plate
+                    type: object
+                required:
+                  - reference
+                  - status
+                  - channel
+                  - startAt
+                  - endAt
+                  - localDate
+                  - startTime
+                  - endTime
+                  - durationMin
+                  - createdAt
+                  - checkedInAt
+                  - cancelledAt
+                  - lateGraceMin
+                  - customer
+                  - vehicle
+                  - dealership
+                  - serviceType
+                  - technician
+                  - serviceBay
+                  - parts
+                  - history
+                type: object
+          description: Default Response
       tags:
         - Appointments
   /api/v1/customers/{id}:
@@ -2015,6 +2335,12 @@ paths:
           schema:
             maxLength: 64
             minLength: 1
+            type: string
+        - in: query
+          name: excludeReference
+          required: false
+          schema:
+            pattern: ^APT-\d{8}-\d{4}$
             type: string
         - in: path
           name: id

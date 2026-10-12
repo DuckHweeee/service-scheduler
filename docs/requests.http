@@ -154,6 +154,24 @@ GET {{api}}/appointments?customerId=CUS-10482&status=CONFIRMED
 # Unknown reference: 404 NOT_FOUND
 GET {{api}}/appointments/APT-00000000-0000
 
+### 4b. Reschedule (SPEC 6.5) ---------------------------------------------------------------------------
+
+# Availability as if the appointment did not exist (its own window shows AVAILABLE): 200
+GET {{api}}/dealerships/DLR-01/availability?serviceType=OIL_CHANGE&date={{futureDate}}&vehicleId=VEH-01&excludeReference={{reference}}
+
+###
+# Move the appointment in place to 09:00: 200, same reference, new time, history ends with
+# "Rescheduled from 08:00 to 09:00 — Bay n, <technician>". Same time again => 200, nothing changes.
+# 409 SLOT_UNAVAILABLE / VEHICLE_ALREADY_BOOKED / PARTS_UNAVAILABLE / APPOINTMENT_NOT_RESCHEDULABLE are the refusals.
+POST {{api}}/appointments/{{reference}}/reschedule
+Content-Type: {{json}}
+
+{
+  "date": "{{futureDate}}",
+  "startTime": "09:00",
+  "bookingSessionId": "66666666-6666-4666-8666-666666666666"
+}
+
 ### 5. Cancel ------------------------------------------------------------------------------------------
 
 # 200, status CANCELLED, cancelledAt set, slot is free again

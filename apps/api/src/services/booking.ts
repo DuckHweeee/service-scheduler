@@ -19,10 +19,10 @@ import { pgErrorCode } from '../plugins/error-handler.js';
 import { loadAppointmentDetail } from './appointment-query.js';
 import { loadAlternatives, resolveDayPlan, type DayPlan } from './day-plan.js';
 
-type FailReason = SlotStatus | 'PARTS_UNAVAILABLE' | 'VEHICLE_ALREADY_BOOKED' | 'CONFLICT';
+export type FailReason = SlotStatus | 'PARTS_UNAVAILABLE' | 'VEHICLE_ALREADY_BOOKED' | 'CONFLICT';
 
 /** Thrown inside the transaction to roll it back; handled (CHECK_FAILED + 409) after the rollback. */
-class CheckFailure extends Error {
+export class CheckFailure extends Error {
   constructor(readonly reason: FailReason) {
     super(reason);
   }
@@ -41,7 +41,7 @@ export interface BookingResult {
 }
 
 /** Name of the violated constraint, walking `cause` like `pgErrorCode` does (drizzle wraps driver errors). */
-const pgConstraint = (err: unknown): string | undefined => {
+export const pgConstraint = (err: unknown): string | undefined => {
   let cur: unknown = err;
   for (let depth = 0; cur && typeof cur === 'object' && depth < 5; depth++) {
     const c = (cur as { constraint?: unknown }).constraint;
@@ -81,6 +81,47 @@ const replay = (existing: AppointmentDetail, body: CreateAppointmentRequest): Bo
   }
   return { created: false, appointment: existing };
 };
+
+/**
+ * SPEC §6.1 step 1 target validation, shared with reschedule (§6.5): working day, 30-minute grid, opening hours,
+ * same-day express and lead time. Throws 422 DomainErrors; returns the start/end in local minutes.
+ */
+export function validateTarget(plan: DayPlan, date: string, startTime: string): { startMin: number; endMin: number } {
+  const { dealership, spec } = plan;
+  const body = { date, startTime };
+  if (!plan.isWorkingDay) {
+    throw new DomainError('DEALERSHIP_CLOSED', 422, `${dealership.name} is closed on ${body.date}`);
+  }
+  const startMin = parseLocalTime(body.startTime);
+  const endMin = startMin + spec.durationMin;
+  const opensAt = plan.day.opensAt;
+  const closesAt = plan.day.closesAt;
+  if ((startMin - opensAt) % 30 !== 0) {
+    throw new DomainError('MISALIGNED_START', 422, `Start time must be on the 30-minute grid from ${formatLocalTime(opensAt)}`);
+  }
+  if (startMin < opensAt || endMin > closesAt) {
+    throw new DomainError(
+      'OUTSIDE_OPENING_HOURS',
+      422,
+      `The job must start and finish between ${formatLocalTime(opensAt)} and ${formatLocalTime(closesAt)}`,
+    );
+  }
+  if (plan.isSameDay && plan.sameDay) {
+    if (plan.sameDay.blocked === 'SERVICE_NOT_EXPRESS') {
+      throw new DomainError('SERVICE_NOT_EXPRESS', 422, `${plan.service.name} cannot be booked for today; same-day covers express services only`);
+    }
+    if (plan.sameDay.blocked === 'PAST_CUTOFF' || startMin < plan.sameDay.earliestStart) {
+      throw new DomainError(
+        'LEAD_TIME_NOT_MET',
+        422,
+        plan.sameDay.blocked === 'PAST_CUTOFF'
+          ? 'Same-day booking for today has closed'
+          : `Same-day bookings start no earlier than ${formatLocalTime(plan.sameDay.earliestStart)}`,
+      );
+    }
+  }
+  return { startMin, endMin };
+}
 
 /** Observability wrapper: one span + one `booking_attempts_total` increment per call, no PII in attributes. */
 export async function createAppointment(
@@ -139,38 +180,7 @@ async function reserveAppointment(
   const plan = await resolveDayPlan(db, clock, planInput(body)); // 404s, SERVICE_NOT_APPLICABLE, OUTSIDE_BOOKING_HORIZON
   const { dealership, spec } = plan;
   const tz = dealership.timezone;
-  if (!plan.isWorkingDay) {
-    throw new DomainError('DEALERSHIP_CLOSED', 422, `${dealership.name} is closed on ${body.date}`);
-  }
-  const startMin = parseLocalTime(body.startTime);
-  const endMin = startMin + spec.durationMin;
-  const opensAt = plan.day.opensAt;
-  const closesAt = plan.day.closesAt;
-  if ((startMin - opensAt) % 30 !== 0) {
-    throw new DomainError('MISALIGNED_START', 422, `Start time must be on the 30-minute grid from ${formatLocalTime(opensAt)}`);
-  }
-  if (startMin < opensAt || endMin > closesAt) {
-    throw new DomainError(
-      'OUTSIDE_OPENING_HOURS',
-      422,
-      `The job must start and finish between ${formatLocalTime(opensAt)} and ${formatLocalTime(closesAt)}`,
-    );
-  }
-  if (plan.isSameDay && plan.sameDay) {
-    if (plan.sameDay.blocked === 'SERVICE_NOT_EXPRESS') {
-      throw new DomainError('SERVICE_NOT_EXPRESS', 422, `${plan.service.name} cannot be booked for today; same-day covers express services only`);
-    }
-    if (plan.sameDay.blocked === 'PAST_CUTOFF' || startMin < plan.sameDay.earliestStart) {
-      throw new DomainError(
-        'LEAD_TIME_NOT_MET',
-        422,
-        plan.sameDay.blocked === 'PAST_CUTOFF'
-          ? 'Same-day booking for today has closed'
-          : `Same-day bookings start no earlier than ${formatLocalTime(plan.sameDay.earliestStart)}`,
-      );
-    }
-  }
-
+  const { startMin, endMin } = validateTarget(plan, body.date, body.startTime);
   ctx.channel = plan.isSameDay ? 'SAME_DAY' : 'ADVANCE';
   const startAt = toInstant(body.date, startMin, tz);
   const endAt = toInstant(body.date, endMin, tz);
@@ -338,10 +348,10 @@ async function reserveAppointment(
 }
 
 /** After the rollback: alternatives (slot conflicts only), CHECK_FAILED event, then the 409 to throw. */
-async function failBooking(
+export async function failBooking(
   deps: { db: Db; clock: Clock },
   plan: DayPlan,
-  body: CreateAppointmentRequest,
+  body: Pick<CreateAppointmentRequest, 'bookingSessionId'>,
   startMin: number,
   reason: FailReason,
 ): Promise<DomainError> {

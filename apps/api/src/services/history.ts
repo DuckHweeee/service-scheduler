@@ -81,6 +81,15 @@ export const renderSummary = (type: string, detail: Record<string, unknown>, ctx
       const reason = str(detail.reason).trim();
       return reason ? `Cancelled by customer: ${reason}` : 'Cancelled by customer';
     }
+    case 'APPOINTMENT_RESCHEDULED': {
+      const from = (detail.from ?? {}) as Record<string, unknown>;
+      const to = (detail.to ?? {}) as Record<string, unknown>;
+      const dayLabel = (d: string) => DateTime.fromISO(d, { zone: 'utc' }).setLocale('en').toFormat('ccc d LLL');
+      const sameDate = str(from.date) === str(to.date);
+      const fromPart = sameDate ? str(from.startTime) : `${dayLabel(str(from.date))} ${str(from.startTime)}`;
+      const toPart = sameDate ? str(to.startTime) : `${dayLabel(str(to.date))} ${str(to.startTime)}`;
+      return `Rescheduled from ${fromPart} to ${toPart} — ${str(to.bayName)}, ${str(to.technicianName)}`;
+    }
     case 'CHECKED_IN':
       return 'Checked in';
     case 'APPOINTMENT_NO_SHOW':
