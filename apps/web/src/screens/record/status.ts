@@ -11,5 +11,5 @@ export const STATUS_LABEL: Record<DisplayStatus, string> = {
   CONFIRMED: 'Confirmed',
   CHECKED_IN: 'Checked in',
   CANCELLED: 'Cancelled',
-  NO_SHOW: 'No-show',
+  NO_SHOW: 'Missed',
 };

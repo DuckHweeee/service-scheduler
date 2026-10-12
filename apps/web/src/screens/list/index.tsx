@@ -4,6 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { errorMessage } from '../../api/client.js';
 import { useAppointments } from '../../api/hooks.js';
 import { CUSTOMER_ID } from '../../config.js';
+import { DEFAULT_TZ, businessNow } from '../../lib/now.js';
 import { dateShort } from '../../lib/time.js';
 import { STATUS_LABEL, displayStatus } from '../record/status.js';
 import { TABS, filterAppointments, tabOf } from './filter.js';
@@ -13,7 +14,7 @@ import styles from './List.module.css';
 const EMPTY: Record<ListTab, string> = {
   upcoming: 'No upcoming appointments.',
   past: 'No past appointments yet.',
-  cancelled: 'No cancelled or no-show appointments.',
+  cancelled: 'No cancelled or missed appointments.',
 };
 
 export function AppointmentsScreen() {
@@ -21,7 +22,7 @@ export function AppointmentsScreen() {
   const query = useAppointments(CUSTOMER_ID);
   const [tab, setTab] = useState<ListTab>('upcoming');
   const base = useId();
-  const nowMs = Date.now();
+  const nowMs = businessNow(DEFAULT_TZ);
 
   const items = useMemo(() => query.data?.items ?? [], [query.data]);
   const counts = useMemo(() => {
@@ -118,10 +119,12 @@ export function AppointmentsScreen() {
                     </span>
                     <span className={styles.vehicle}>
                       <span>{`${a.vehicle.modelYear} ${a.vehicle.modelName}`}</span>
-                      <span className={styles.plate}>{a.vehicle.plate ?? 'no plate'}</span>
+                      <span className={styles.plate}>{a.vehicle.plate ?? 'No plate'}</span>
                     </span>
                     <span className={`${styles.status} ${styles[`s_${state}`]}`}>{STATUS_LABEL[state]}</span>
-                    <span className={styles.ref}>{a.reference}</span>
+                    <span className={styles.ref} title="Booking number">
+                      {a.reference}
+                    </span>
                   </Link>
                 </li>
               );

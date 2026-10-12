@@ -18,6 +18,9 @@ test('book, reschedule to another day from the record, see the notice and histor
   await expect(page.getByRole('heading', { level: 1, name: `Reschedule ${SERVICE}` })).toBeVisible();
   await expect(page.getByRole('button', { name: `${first.startTime} to ${first.endTime}, Current` })).toBeDisabled();
 
+  // Nothing is chosen for the user: the button stays disabled until they pick a time.
+  await expect(page.getByRole('button', { name: 'Move appointment' })).toBeDisabled();
+
   const target = await firstSlotFreeForVehicle('OIL_CHANGE', [first.date]);
   await dateButton(page, target.date).click();
   const slot = page.getByRole('button', { name: `${target.startTime} to ${target.endTime}, Available` });

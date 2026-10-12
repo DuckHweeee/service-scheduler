@@ -7,21 +7,14 @@ import type {
   Vehicle,
 } from '@scheduler/contracts';
 import { useRef, useState } from 'react';
-import { ApiError, errorMessage } from '../../api/client.js';
+import { ApiError, GENERIC_ERROR, errorMessage } from '../../api/client.js';
 import { useAvailability, useCreateAppointment } from '../../api/hooks.js';
 import { CUSTOMER_ID } from '../../config.js';
-import {
-  bookableDates,
-  dateShort,
-  dayMonthShort,
-  durationText,
-  firstWorkingDayAfter,
-  todayIn,
-  weekdayName,
-} from '../../lib/time.js';
+import { businessNow } from '../../lib/now.js';
+import { bookableDates, dateShort, durationText, firstWorkingDayAfter, todayIn } from '../../lib/time.js';
 import styles from './Book.module.css';
 import { Confirmation } from './Confirmation.js';
-import { SlotGrid } from './SlotGrid.js';
+import { TimePicker } from './TimePicker.js';
 import { Summary } from './Summary.js';
 import { SKILL_LABEL } from './labels.js';
 
@@ -30,6 +23,9 @@ interface Props {
   serviceTypes: ServiceType[];
   vehicles: Vehicle[];
 }
+
+/** Slot state meaning "the user has not chosen and we must not choose for them" (after a 409). */
+const NONE = '';
 
 const DEFAULT_SERVICE = 'BRAKE_PAD_REPLACEMENT';
 const applicable = (services: ServiceType[], vehicle: Vehicle) =>
@@ -48,9 +44,9 @@ export function BookForm({ dealerships, serviceTypes, vehicles }: Props) {
   );
   const [dealerId, setDealerId] = useState(firstDealer.id);
   const [date, setDate] = useState(() =>
-    firstWorkingDayAfter(todayIn(firstDealer.timezone), firstDealer.workingDays),
+    firstWorkingDayAfter(todayIn(firstDealer.timezone, businessNow(firstDealer.timezone)), firstDealer.workingDays),
   );
-  /** null = auto-select the first available slot; otherwise an explicit start time. */
+  /** null = auto-select the first available slot; NONE = nothing chosen (after a 409); otherwise an explicit start time. */
   const [slot, setSlot] = useState<string | null>(null);
   const [record, setRecord] = useState<AppointmentDetail | null>(null);
   const [conflict, setConflict] = useState<Problem | null>(null);
@@ -62,17 +58,17 @@ export function BookForm({ dealerships, serviceTypes, vehicles }: Props) {
 
   const vehicle = vehicles.find((v) => v.id === vehicleId) ?? firstVehicle;
   const services = applicable(serviceTypes, vehicle);
-  const service = services.find((s) => s.code === serviceCode) ?? services[0]!;
+  const service = services.find((s) => s.code === serviceCode) ?? services[0];
   const dealer = dealerships.find((d) => d.id === dealerId) ?? firstDealer;
 
-  const today = todayIn(dealer.timezone);
+  const today = todayIn(dealer.timezone, businessNow(dealer.timezone));
   const strip = bookableDates(today, dealer.workingDays);
   const dates = strip.includes(date) ? strip : [...strip, date].sort();
 
   const availability = useAvailability(
     dealer.id,
-    { serviceType: service.code, date, vehicleId: vehicle.id },
-    !record,
+    { serviceType: service?.code ?? '', date, vehicleId: vehicle.id },
+    !record && !!service,
   );
   const data = availability.data;
   const slots: AvailabilitySlot[] = data?.slots ?? [];
@@ -100,7 +96,7 @@ export function BookForm({ dealerships, serviceTypes, vehicles }: Props) {
     });
 
   const confirm = () => {
-    if (!selected || create.isPending) return;
+    if (!selected || !service || create.isPending) return;
     clearFeedback();
     create.mutate(
       {
@@ -119,11 +115,9 @@ export function BookForm({ dealerships, serviceTypes, vehicles }: Props) {
         onError: (err) => {
           if (err instanceof ApiError && err.problem.code === 'SLOT_UNAVAILABLE') {
             setConflict(err.problem);
-            setSlot(null);
+            setSlot(NONE);
           } else {
-            setError(
-              err instanceof ApiError ? err.problem.detail : 'Something went wrong. Please try again.',
-            );
+            setError(err instanceof ApiError ? errorMessage(err) : GENERIC_ERROR);
           }
         },
       },
@@ -164,8 +158,8 @@ export function BookForm({ dealerships, serviceTypes, vehicles }: Props) {
         <p className={styles.eyebrow}>NEW APPOINTMENT</p>
         <h1 className={styles.h1}>Book a service</h1>
         <p className={styles.lede}>
-          We only confirm a time when a service bay and a technician qualified for the job are both free for
-          the full duration.
+          Choose your vehicle, the service and a time. We confirm a time only when a service bay and the right
+          technician are both free. A bay is the space where your vehicle is worked on.
         </p>
       </div>
 
@@ -188,7 +182,7 @@ export function BookForm({ dealerships, serviceTypes, vehicles }: Props) {
                   onClick={() => pickVehicle(v)}
                 >
                   <span className={styles.choiceName}>{`${v.modelYear} ${v.modelName}`}</span>
-                  <span className={styles.meta}>{`VIN ••••${v.vinLast4} · ${v.plate ?? 'no plate'}`}</span>
+                  <span className={styles.meta}>{`Plate ${v.plate ?? 'none'} · VIN ends ${v.vinLast4}`}</span>
                 </button>
               ))}
             </div>
@@ -201,26 +195,32 @@ export function BookForm({ dealerships, serviceTypes, vehicles }: Props) {
                 Service
               </h2>
             </div>
-            <div className={styles.choices} data-min="220">
-              {services.map((s) => (
-                <button
-                  key={s.code}
-                  type="button"
-                  className={styles.choice}
-                  aria-pressed={s.code === service.code}
-                  onClick={() => change(() => setServiceCode(s.code))}
-                >
-                  <span className={styles.choiceName}>{s.name}</span>
-                  <span className={styles.tags}>
-                    <span className={styles.duration}>{durationText(s.durationMin)}</span>
-                    <span className={styles.tag}>{`Needs ${SKILL_LABEL[s.requiredSkill]}`}</span>
-                    {s.isExpress ? (
-                      <span className={`${styles.tag} ${styles.tagExpress}`}>Express</span>
-                    ) : null}
-                  </span>
-                </button>
-              ))}
-            </div>
+            {services.length === 0 ? (
+              <p role="status" className={styles.warn}>
+                No services are available for this vehicle. Choose another vehicle.
+              </p>
+            ) : (
+              <div className={styles.choices} data-min="220">
+                {services.map((s) => (
+                  <button
+                    key={s.code}
+                    type="button"
+                    className={styles.choice}
+                    aria-pressed={s.code === service?.code}
+                    onClick={() => change(() => setServiceCode(s.code))}
+                  >
+                    <span className={styles.choiceName}>{s.name}</span>
+                    <span className={styles.tags}>
+                      <span className={styles.duration}>{durationText(s.durationMin)}</span>
+                      <span className={styles.tag}>{`Needs ${SKILL_LABEL[s.requiredSkill]} technician`}</span>
+                      {s.isExpress ? (
+                        <span className={`${styles.tag} ${styles.tagExpress}`}>Express</span>
+                      ) : null}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
           </section>
 
           <section aria-labelledby="h-dealer" className={styles.card}>
@@ -240,143 +240,64 @@ export function BookForm({ dealerships, serviceTypes, vehicles }: Props) {
                   onClick={() => change(() => setDealerId(d.id))}
                 >
                   <span className={styles.choiceName}>{d.name}</span>
-                  <span className={styles.meta}>{`${d.bayCount} bays · ${d.opensAt}–${d.closesAt}`}</span>
+                  <span className={styles.meta}>{`${d.bayCount} bays · open ${d.opensAt}–${d.closesAt}`}</span>
                 </button>
               ))}
             </div>
           </section>
 
-          <section aria-labelledby="h-time" className={`${styles.card} ${styles.cardTime}`}>
-            <div className={styles.timeHead}>
-              <div className={styles.cardHead}>
-                <span className={styles.num}>04</span>
-                <h2 id="h-time" className={styles.h2}>
-                  Date and time
-                </h2>
+          {service ? (
+            <section aria-labelledby="h-time" className={`${styles.card} ${styles.cardTime}`}>
+              <div className={styles.timeHead}>
+                <div className={styles.cardHead}>
+                  <span className={styles.num}>04</span>
+                  <h2 id="h-time" className={styles.h2}>
+                    Date and time
+                  </h2>
+                </div>
+                <p className={styles.live}>{`Free times right now · this job takes ${durationText(service.durationMin)}`}</p>
               </div>
-              <p className={styles.live}>{`Live availability · ${durationText(service.durationMin)} job`}</p>
-            </div>
-
-            {conflict ? (
-              <div role="alert" className={styles.conflict}>
-                <p className={styles.conflictTitle}>That time is no longer available.</p>
-                <p>{conflict.detail}</p>
-                {conflict.alternatives?.length ? (
-                  <>
-                    <p className={styles.conflictLead}>Closest open times:</p>
-                    <ul className={styles.alts}>
-                      {conflict.alternatives.map((alt) => (
-                        <li key={`${alt.date}-${alt.startTime}`}>
-                          <button type="button" className={styles.alt} onClick={() => chooseAlternative(alt)}>
-                            {`${dateShort(alt.date)} · ${alt.startTime}–${alt.endTime}`}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  </>
-                ) : null}
-              </div>
-            ) : null}
-
-            <div role="group" aria-label="Date" className={styles.dates}>
-              {dates.map((d) => {
-                const isToday = d === today;
-                return (
-                  <button
-                    key={d}
-                    type="button"
-                    className={styles.date}
-                    aria-label={`${isToday ? 'Today, ' : ''}${dateShort(d)}${isToday ? ', same-day booking' : ''}`}
-                    aria-pressed={d === date}
-                    onClick={() => change(() => setDate(d))}
-                  >
-                    <span className={styles.dateWd}>
-                      {isToday ? 'TODAY' : weekdayName(d, true).toUpperCase()}
-                    </span>
-                    <span className={styles.dateDay}>{dayMonthShort(d)}</span>
-                    {isToday ? <span className={styles.sameDayChip}>SAME-DAY</span> : null}
-                  </button>
-                );
-              })}
-            </div>
-
-            {date === today || data?.sameDay ? (
-              <p className={styles.notice}>
-                {`Same-day booking covers express maintenance only. Please arrive on time — same-day bookings are released if you are more than ${graceMin} minutes late.`}
-              </p>
-            ) : null}
-
-            <div className={styles.legend}>
-              <span className={styles.legendItem}>
-                <span aria-hidden="true" className={`${styles.swatch} ${styles.swFree}`} />
-                Bay and technician free
-              </span>
-              <span className={styles.legendItem}>
-                <span aria-hidden="true" className={`${styles.swatch} ${styles.swSelected}`} />
-                Selected
-              </span>
-              <span className={styles.legendItem}>
-                <span aria-hidden="true" className={`${styles.swatch} ${styles.swOff}`} />
-                Can't cover the full job
-              </span>
-            </div>
-
-            {availability.isPending && availability.fetchStatus !== 'idle' ? (
-              <p role="status" className={styles.muted}>
-                Loading availability…
-              </p>
-            ) : availability.error ? (
-              <div role="alert" className={styles.warn}>
-                <p>{errorMessage(availability.error)}</p>
-                <button type="button" className={styles.retry} onClick={() => void availability.refetch()}>
-                  Try again
-                </button>
-              </div>
-            ) : data?.sameDay?.blocked === 'SERVICE_NOT_EXPRESS' ? (
-              <p
-                className={styles.warn}
-              >{`${service.name} can't be booked for today. Same-day booking covers express services: ${expressNames.join(', ')}.`}</p>
-            ) : data?.sameDay?.blocked === 'PARTS_UNAVAILABLE' ? (
-              <p
-                className={styles.warn}
-              >{`Parts for this service aren't in stock at ${dealer.name} today. Try another dealership or a later date.`}</p>
-            ) : data?.sameDay?.blocked === 'PAST_CUTOFF' ? (
-              <p
-                className={styles.warn}
-              >{`Same-day booking for today has closed. Earliest same-day start is ${data.sameDay.leadTimeMin / 60} hours ahead.`}</p>
-            ) : (
-              <>
-                <SlotGrid
-                  slots={slots}
-                  selectedStart={selected?.startTime ?? null}
-                  onPick={(s) => {
-                    setSlot(s.startTime);
-                    clearFeedback();
-                  }}
-                />
-                {data && !slots.some((s) => s.status === 'AVAILABLE') ? (
-                  <p className={styles.warn}>
-                    No time this day has both a free bay and a qualified technician for the whole job. Try
-                    another date or dealership.
-                  </p>
-                ) : null}
-              </>
-            )}
-          </section>
+              <TimePicker
+                dates={dates}
+                today={today}
+                date={date}
+                onDate={(d) => change(() => setDate(d))}
+                availability={{
+                  data,
+                  error: availability.error,
+                  loading: availability.isPending && availability.fetchStatus !== 'idle',
+                  refetch: () => void availability.refetch(),
+                }}
+                serviceName={service.name}
+                dealerName={dealer.name}
+                expressNames={expressNames}
+                graceMin={graceMin}
+                selectedStart={selected?.startTime ?? null}
+                onPick={(s) => {
+                  setSlot(s.startTime);
+                  clearFeedback();
+                }}
+                conflict={conflict}
+                onAlternative={chooseAlternative}
+              />
+            </section>
+          ) : null}
         </div>
 
-        <Summary
-          vehicleName={`${vehicle.modelYear} ${vehicle.modelName}`}
-          serviceLine={`${service.name} · ${durationText(service.durationMin)}`}
-          dealerName={dealer.name}
-          when={when}
-          durationLabel={durationText(service.durationMin)}
-          selected={selected ?? null}
-          skill={SKILL_LABEL[service.requiredSkill]}
-          checking={create.isPending}
-          error={error}
-          onConfirm={confirm}
-        />
+        {service ? (
+          <Summary
+            vehicleName={`${vehicle.modelYear} ${vehicle.modelName}`}
+            serviceLine={`${service.name} · ${durationText(service.durationMin)}`}
+            dealerName={dealer.name}
+            when={when}
+            durationLabel={durationText(service.durationMin)}
+            selected={selected ?? null}
+            skill={SKILL_LABEL[service.requiredSkill]}
+            checking={create.isPending}
+            error={error}
+            onConfirm={confirm}
+          />
+        ) : null}
       </div>
     </main>
   );

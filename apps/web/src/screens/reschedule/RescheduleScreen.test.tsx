@@ -1,6 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { useLocation, useNavigationType } from 'react-router-dom';
 import { App } from '../../App.js';
 import { addAppointment, freezeClock, renderAt } from '../record/testUtils.js';
 
@@ -27,7 +28,7 @@ describe('Reschedule screen', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Reschedule Brake pad replacement' }),
     ).toBeInTheDocument();
-    expect(screen.getByText(REF)).toBeInTheDocument();
+    expect(screen.getByText(`Booking number ${REF}`)).toBeInTheDocument();
     const current = screen.getByRole('heading', { name: 'Current' }).closest('section')!;
     expect(within(current).getByText('Thursday 8 October')).toBeInTheDocument();
     expect(within(current).getByText('13:00–15:00')).toBeInTheDocument();
@@ -38,18 +39,15 @@ describe('Reschedule screen', () => {
     expect(screen.queryByRole('heading', { name: 'Dealership' })).not.toBeInTheDocument();
   });
 
-  it('marks the current slot "Current", disabled and never auto-selected', async () => {
+  it('marks the current slot "Current" and disabled; nothing is auto-selected', async () => {
     const a = addAppointment({ date: '2026-10-09', startMin: 10 * 60, endMin: 12 * 60 });
     renderReschedule(a.reference);
     const group = await slotGroup();
     const current = await within(group).findByRole('button', { name: '10:00 to 12:00, Current' });
     expect(current).toBeDisabled();
     expect(current).toHaveAttribute('aria-pressed', 'false');
-    await waitFor(() => {
-      const open = enabledSlots(group);
-      expect(open[0]).toHaveAttribute('aria-pressed', 'true');
-      expect(open[0]).not.toBe(current);
-    });
+    await waitFor(() => expect(enabledSlots(group).length).toBeGreaterThan(0));
+    expect(within(group).queryAllByRole('button', { pressed: true })).toHaveLength(0);
   });
 
   it('moves the appointment: returns to the record with the notice and the "Rescheduled from" history line', async () => {
@@ -58,8 +56,9 @@ describe('Reschedule screen', () => {
     // Today is not bookable for brake pads, so go to Fri 9 Oct.
     await user.click(await screen.findByRole('button', { name: /^Fri 9 Oct/ }));
     const group = await slotGroup();
-    await waitFor(() => expect(enabledSlots(group)[0]).toHaveAttribute('aria-pressed', 'true'));
+    await waitFor(() => expect(enabledSlots(group).length).toBeGreaterThan(0));
     const startTime = enabledSlots(group)[0]!.getAttribute('aria-label')!.slice(0, 5);
+    await user.click(enabledSlots(group)[0]!);
 
     await user.click(screen.getByRole('button', { name: 'Move appointment' }));
 
@@ -75,16 +74,17 @@ describe('Reschedule screen', () => {
     const user = userEvent.setup();
     renderReschedule(REF, 'conflict');
     await user.click(await screen.findByRole('button', { name: /^Fri 9 Oct/ }));
-    await slotGroup();
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Move appointment' })).toBeEnabled());
+    const group = await slotGroup();
+    await waitFor(() => expect(enabledSlots(group).length).toBeGreaterThan(0));
+    await user.click(enabledSlots(group)[0]!);
     await user.click(screen.getByRole('button', { name: 'Move appointment' }));
 
     const alert = await screen.findByRole('alert');
-    expect(within(alert).getByText('That time is no longer available.')).toBeInTheDocument();
+    expect(within(alert).getByText('Someone just booked that time.')).toBeInTheDocument();
     const alts = within(alert).getAllByRole('button');
     expect(alts.length).toBeGreaterThan(0);
     await user.click(alts[0]!);
-    expect(screen.queryByText('That time is no longer available.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Someone just booked that time.')).not.toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole('button', { name: 'Move appointment' })).toBeEnabled());
 
     await user.click(screen.getByRole('button', { name: 'Move appointment' }));
@@ -94,10 +94,60 @@ describe('Reschedule screen', () => {
   it('explains when the appointment can no longer be rescheduled', async () => {
     const a = addAppointment({ status: 'CANCELLED', cancelledAtMs: Date.now() });
     renderReschedule(a.reference);
-    expect(await screen.findByRole('alert')).toHaveTextContent(/Only upcoming confirmed appointments/);
-    expect(screen.getByRole('link', { name: 'Back to appointment' })).toHaveAttribute(
+    expect(await screen.findByRole('alert')).toHaveTextContent(/This appointment can't be moved/);
+    expect(screen.getByRole('link', { name: 'Back to your appointment' })).toHaveAttribute(
       'href',
       `/appointments/${a.reference}`,
     );
+  });
+});
+
+function Probe() {
+  const loc = useLocation();
+  const type = useNavigationType();
+  return <output data-testid="probe">{`${type}|${loc.pathname}|${JSON.stringify(loc.state)}`}</output>;
+}
+
+describe('W6-F5 reschedule findings', () => {
+  it('F5-1 starts with nothing selected: summary says "Pick a new time" and Move appointment is disabled until a pick', async () => {
+    const user = userEvent.setup();
+    renderReschedule();
+    await user.click(await screen.findByRole('button', { name: /^Fri 9 Oct/ }));
+    const group = await slotGroup();
+    await waitFor(() => expect(enabledSlots(group).length).toBeGreaterThan(0));
+    expect(within(group).queryAllByRole('button', { pressed: true })).toHaveLength(0);
+    expect(screen.getByText(/Pick a new time$/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Move appointment' })).toBeDisabled();
+    await user.click(enabledSlots(group)[0]!);
+    expect(screen.getByRole('button', { name: 'Move appointment' })).toBeEnabled();
+  });
+
+  it('F5-2 success replaces the history entry and the notice is shown only once', async () => {
+    const user = userEvent.setup();
+    renderAt(
+      <>
+        <Probe />
+        <App />
+      </>,
+      `/appointments/${REF}/reschedule`,
+    );
+    await user.click(await screen.findByRole('button', { name: /^Fri 9 Oct/ }));
+    const group = await slotGroup();
+    await waitFor(() => expect(enabledSlots(group).length).toBeGreaterThan(0));
+    await user.click(enabledSlots(group)[0]!);
+    await user.click(screen.getByRole('button', { name: 'Move appointment' }));
+    expect(await screen.findByText(/^Appointment moved to /)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('probe').textContent).toBe(`REPLACE|/appointments/${REF}|null`));
+    expect(screen.getByText(/^Appointment moved to /)).toBeInTheDocument();
+  });
+
+  it('F5-4 parts-unavailable panel does not suggest another dealership', async () => {
+    const user = userEvent.setup();
+    const a = addAppointment({ date: '2026-10-09', startMin: 10 * 60, endMin: 10 * 60 + 45, serviceTypeCode: 'OIL_CHANGE' });
+    renderReschedule(a.reference, 'morning,parts');
+    await user.click(await screen.findByRole('button', { name: /^Today, Thu 8 Oct/ }));
+    const panel = await screen.findByText(/aren't in stock at/);
+    expect(panel).toHaveTextContent('Try a later date.');
+    expect(panel).not.toHaveTextContent(/another dealership/);
   });
 });

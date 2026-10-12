@@ -61,7 +61,7 @@ export async function request<T>(path: string, opts: RequestOptions<T>): Promise
     if (err instanceof DOMException && err.name === 'AbortError') throw err;
     throw new ApiError(
       0,
-      syntheticProblem(0, 'The service could not be reached. Check your connection and try again.'),
+      syntheticProblem(0, 'We could not reach the service. Check your internet connection and try again.'),
     );
   }
 
@@ -85,7 +85,19 @@ export async function request<T>(path: string, opts: RequestOptions<T>): Promise
   return opts.schema.parse(json);
 }
 
+export const GENERIC_ERROR = 'Something went wrong on our side. Please try again in a moment.';
+
+/** Matches machine codes such as `SLOT_UNAVAILABLE` that must never be shown to people. */
+const RAW_CODE = /[A-Z]{3,}_[A-Z_]+/;
+
+/** A sentence that is safe to show: server errors and anything containing a raw code become a generic one. */
 export function errorMessage(err: unknown): string {
-  if (err instanceof ApiError) return err.problem.detail;
-  return err instanceof Error ? err.message : 'Something went wrong. Please try again.';
+  if (err instanceof ApiError) {
+    const detail = err.problem.detail;
+    if (err.status >= 500 || RAW_CODE.test(detail) || /^Request failed with status/.test(detail)) {
+      return err.status === 0 ? detail : GENERIC_ERROR;
+    }
+    return detail;
+  }
+  return GENERIC_ERROR;
 }

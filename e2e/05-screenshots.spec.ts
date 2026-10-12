@@ -43,7 +43,7 @@ for (const viewport of VIEWPORTS) {
         'aria-pressed',
         'true',
       );
-      await expect(page.getByText('Both resources are re-checked')).toBeVisible();
+      await expect(page.getByText('We check again and reserve both')).toBeVisible();
       await shoot(page, 'book');
     });
 
