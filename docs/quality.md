@@ -12,8 +12,8 @@ part of `pnpm verify` (kept fast); CI runs them in separate jobs (see [CI](#ci))
 | API unit (engine, time, seed, telemetry) | `pnpm --filter @scheduler/api test:unit` | 8 | 83 |
 | API integration (real embedded Postgres) | `pnpm --filter @scheduler/api test:int` | 19 | 181 |
 | API total | `pnpm --filter @scheduler/api test` | 27 | 264 |
-| Web (jsdom + MSW) | `pnpm --filter @scheduler/web test` | 9 | 52 |
-| **`pnpm verify` total** | `pnpm verify` | 37 | **339** |
+| Web (jsdom + MSW) | `pnpm --filter @scheduler/web test` | 10 | 67 |
+| **`pnpm verify` total** | `pnpm verify` | 38 | **354** |
 | e2e (Playwright, real API + DB + web) | `pnpm e2e` | 6 specs | **16 passed** (6 journeys + 10 screenshot tests at 1440 / 390 px) |
 
 ### Reschedule suites (Wave 5)
@@ -33,7 +33,7 @@ v8 coverage, `text-summary` lines from `pnpm coverage`.
 |---|---|---|---|---|---|
 | API, unit + int (all `src/**`) | 94.58% (2639/2790) | 90.85% (735/809) | 92.07% (151/164) | 94.58% (2639/2790) | floor in `apps/api/vitest.config.ts`: lines/stmts 92, branches 89, functions 90 |
 | API engine `src/domain/availability/**` | 100% | 100% | 100% | 100% | hard threshold 100% on all four metrics |
-| Web (`src/**`) | 87.15% (3061/3512) | 81.6% (710/870) | 88.01% (191/217) | 87.15% (3061/3512) | none (reported only) |
+| Web (`src/**`) | 88.35% (3164/3581) | 82.68% (740/895) | 87.89% (196/223) | 88.35% (3164/3581) | none (reported only) |
 
 Engine per file (from `apps/api/coverage/coverage-summary.json`): `alternatives`, `assignment`, `engine`, `index`,
 `intervals`, `same-day`, `types` all at 100/100/100/100. `pnpm coverage` exits non-zero if a threshold is missed.
@@ -109,7 +109,7 @@ this is what they check:
 
 ```bash
 pnpm install
-pnpm verify                                 # typecheck + lint + 339 tests
+pnpm verify                                 # typecheck + lint + 354 tests
 pnpm --filter @scheduler/api test:unit      # 83 tests
 pnpm --filter @scheduler/api test:int       # 181 tests (starts embedded Postgres)
 pnpm coverage                               # api + web; HTML in apps/{api,web}/coverage/

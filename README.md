@@ -16,7 +16,7 @@ Numbers from commands run on this commit (2026-10-12); each row links to the ful
 
 | | Result | Source |
 |---|---|---|
-| Tests | **339** unit + integration (contracts 23 · API unit 83 · API integration 181 on a real PostgreSQL · web 52) and **16** Playwright e2e on the real API, all passing | [quality.md](docs/quality.md#test-counts) |
+| Tests | **354** unit + integration (contracts 23 · API unit 83 · API integration 181 on a real PostgreSQL · web 67) and **16** Playwright e2e on the real API, all passing | [quality.md](docs/quality.md#test-counts) |
 | Coverage | availability engine **100%** statements / branches / functions / lines (enforced); API overall 94.58% statements, 90.85% branches (floor enforced) | [quality.md](docs/quality.md#coverage) |
 | Mutation score | **98.77%** on `src/domain/**` (Stryker: 318 killed, 4 timeout, 3 survived, 1 no coverage — the 4 argued equivalent) | [quality.md](docs/quality.md#mutation-testing) |
 | Concurrency | 20 parallel bookings for one free slot → exactly 1×201 and one row, also with the advisory lock removed; 20 parallel reschedules into one window → 1×200 (R11); the same appointment moved to two days at once → one winner (R15b) | [quality.md](docs/quality.md#reschedule-suites-wave-5) · [ADR-002](docs/adr/002-double-booking-prevention.md) · [ADR-006](docs/adr/006-reschedule-in-place.md) |
@@ -116,7 +116,7 @@ pnpm --filter @scheduler/api mutation      # Stryker mutation testing on src/dom
 Chromium is unsupported, point it at an installed Chrome:
 `PW_CHROME_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" pnpm e2e`.
 
-What the suites cover (339 unit/integration tests across contracts, API and web, plus 16 e2e tests; counts and
+What the suites cover (354 unit/integration tests across contracts, API and web, plus 16 e2e tests; counts and
 coverage in [`docs/quality.md`](docs/quality.md)):
 
 - **Availability engine** — every rule in the spec's test table (T1–T21: full-duration overlap, back-to-back, skills, bay
