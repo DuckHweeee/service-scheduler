@@ -231,5 +231,17 @@ Auth and technician shifts stay future work. Executed through the project agents
   the appointment first (one lock order everywhere), no-op check before target rules. Mutation: `FOR UPDATE` removed →
   D1, D2 red. Lesson: a concurrency test only covers the lock paths its fixtures exercise.
 
+- **W6-D2a (general-purpose, docs):** README Evidence table, SYSTEM_DESIGN §4.3 reschedule sequence, Auth/Shifts sketches,
+  quality/observability/PLAN/VIDEO refresh; every number re-run (k6 taken from performance.md), 80 relative links
+  checked, 0 broken. Opus fixed three stale lines outside its scope; the reference collision is a **500**, not a 409
+  (only `23P01` is mapped) — documented as a limitation.
+- **`/code-review` of `apps/web` (Huy asked for flow + "a child should understand it"):** 10 unverified findings, the
+  top three all "one click does something the customer did not choose" (reschedule pre-selected a time; Back after a
+  move reopened a live form; Book re-auto-selected after a 409). **W6-F5 (frontend-dev)** confirmed all 10 with a
+  failing test each (`F5-1…10`), fixed them, extracted a shared `<TimePicker>`, added an error boundary, and rewrote
+  the UI copy in plain language (table in the report); a `noCodes` test asserts no `SOME_CODE` text reaches the screen.
+  Gate mutation: 409 path back to auto-select → `F5-3` red. SPEC §8 verbatim strings left untouched, simpler wording
+  proposed for Huy.
+
 ## Parked (decide later)
 - Board "incoming request / rejected / reserved" panels from the mock.
