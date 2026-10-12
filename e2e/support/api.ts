@@ -26,6 +26,22 @@ export async function availability(
   return (await res.json()) as Availability;
 }
 
+/** The demo customer's CONFIRMED windows for one vehicle, as local `date` + `HH:mm` strings (same tz as the grid). */
+export async function vehicleBusy(
+  vehicleId: string,
+  customerId = 'CUS-10482',
+): Promise<{ date: string; start: string; end: string }[]> {
+  const qs = new URLSearchParams({ customerId, status: 'CONFIRMED' });
+  const res = await fetch(`${API()}/api/v1/appointments?${qs}`);
+  if (!res.ok) throw new Error(`appointments: ${res.status}`);
+  const { items } = (await res.json()) as {
+    items: { vehicle: { id: string }; localDate: string; startTime: string; endTime: string }[];
+  };
+  return items
+    .filter((a) => a.vehicle.id === vehicleId)
+    .map((a) => ({ date: a.localDate, start: a.startTime, end: a.endTime }));
+}
+
 export interface BookingInput {
   customerId: string;
   vehicleId: string;

@@ -1,6 +1,6 @@
 import { expect } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { availability } from './api.js';
+import { availability, vehicleBusy } from './api.js';
 
 const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -24,6 +24,24 @@ export async function firstOpenSlot(service: string, skip: string[] = []) {
     if (slot) return { date, startTime: slot.startTime, endTime: slot.endTime };
   }
   throw new Error(`No open slot for ${service}`);
+}
+
+/**
+ * Like `firstOpenSlot`, but also free for VEH-01 itself. The grid is not vehicle-aware (README limitation) and earlier
+ * specs leave VEH-01 bookings behind, so the first AVAILABLE slot may answer 409 VEHICLE_ALREADY_BOOKED. Callers must
+ * click the returned slot explicitly (the Book screen auto-selects the first AVAILABLE one).
+ */
+export async function firstSlotFreeForVehicle(service: string, skip: string[] = []) {
+  const busy = await vehicleBusy('VEH-01');
+  for (const date of ADVANCE_DATES) {
+    if (skip.includes(date)) continue;
+    const a = await availability(service, date);
+    const slot = a.slots.find(
+      (s) => s.status === 'AVAILABLE' && !busy.some((b) => b.date === date && b.start < s.endTime && s.startTime < b.end),
+    );
+    if (slot) return { date, startTime: slot.startTime, endTime: slot.endTime };
+  }
+  throw new Error(`No slot free for VEH-01 for ${service}`);
 }
 
 export const dateButton = (page: Page, date: string) =>

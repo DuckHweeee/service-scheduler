@@ -1,9 +1,11 @@
 import path from 'node:path';
 import type { Page } from '@playwright/test';
 import { test, expect } from './support/test.js';
-import { firstOpenSlot, pickService } from './support/ui.js';
+import { book } from './support/api.js';
+import { CUSTOMER_ID } from './support/constants.js';
+import { firstOpenSlot, firstSlotFreeForVehicle, pickService } from './support/ui.js';
 
-/** Refreshes `docs/screenshots/{book,list,record,board}-{1440,390}.png` from the real stack. */
+/** Refreshes `docs/screenshots/{book,list,record,reschedule,board}-{1440,390}.png` from the real stack. */
 const OUT = path.resolve(import.meta.dirname, '../docs/screenshots');
 const VIEWPORTS = [
   { width: 1440, height: 900 },
@@ -57,6 +59,24 @@ for (const viewport of VIEWPORTS) {
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
       await expect(page.getByRole('heading', { name: 'How it was booked' })).toBeVisible();
       await shoot(page, 'record');
+    });
+
+    test('reschedule', async ({ page }) => {
+      // A fresh upcoming advance booking: earlier specs leave the first "Upcoming" row checked in (no Reschedule).
+      const { date, startTime } = await firstSlotFreeForVehicle('BRAKE_PAD_REPLACEMENT');
+      const res = await book({
+        customerId: CUSTOMER_ID,
+        vehicleId: 'VEH-01',
+        serviceTypeCode: 'BRAKE_PAD_REPLACEMENT',
+        date,
+        startTime,
+      });
+      expect(res.status).toBe(201);
+      await page.goto(`/appointments/${String(res.body.reference)}`);
+      await page.getByRole('link', { name: 'Reschedule' }).click();
+      await expect(page.getByRole('heading', { level: 1, name: /^Reschedule / })).toBeVisible();
+      await expect(page.getByRole('button', { name: /, Current$/ })).toBeDisabled();
+      await shoot(page, 'reschedule');
     });
 
     test('board', async ({ page }) => {

@@ -43,6 +43,10 @@ services:
       CLOCK_OVERRIDE: ${CLOCK_OVERRIDE:-}
       # Tracing is off when empty. With the obs profile: OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      # Head sampling (read by the OTel NodeSDK): 10% of new traces by default. 100% under load OOM-killed Jaeger
+      # (W6-O1). Set OTEL_TRACES_SAMPLER_ARG=1 to trace everything in a demo.
+      OTEL_TRACES_SAMPLER: ${OTEL_TRACES_SAMPLER:-parentbased_traceidratio}
+      OTEL_TRACES_SAMPLER_ARG: ${OTEL_TRACES_SAMPLER_ARG:-0.1}
     ports: ["${API_PORT:-3000}:3000"]
     depends_on:
       migrate: { condition: service_completed_successfully }
