@@ -46,7 +46,7 @@ drops the exclusion constraints and inserts an overlapping row: it reported `TEC
 
 ![Grafana dashboard after the run](screenshots/grafana.png)
 
-Reschedule panel shows "No data" until the API exposes `reschedule_attempts_total` (W5-A8); the load test does not reschedule.
+The load test does not reschedule, so the Reschedule panel only moves when you reschedule (the metric `reschedule_attempts_total` exists since W5-A8).
 
 ## What the numbers mean
 
@@ -70,5 +70,5 @@ Reschedule panel shows "No data" until the API exposes `reschedule_attempts_tota
 - With tracing on at ~700 req/s (100% sampling) Jaeger all-in-one was OOM-killed twice, and the first time the Docker VM stalled for about
   a minute (a few requests took 57 s, event-loop lag spiked, then everything recovered the moment Jaeger was killed). It is not an
   API problem, but it is why tracing should stay off (or sampled) for load tests; the compose file now caps Jaeger.
-- The API has no OTLP sampler setting; a `OTEL_TRACES_SAMPLER=parentbased_traceidratio` env would fix this if the SDK honours it
-  (`apps/api/src/instrumentation.ts` is outside this work package).
+- Since the W6 merge, compose sets `OTEL_TRACES_SAMPLER=parentbased_traceidratio` with `OTEL_TRACES_SAMPLER_ARG=0.1` (the OTel NodeSDK
+  reads both), so only 10% of new traces are exported by default; set the ratio to `1` for a demo, not for a load test.

@@ -7,4 +7,4 @@ everything down. The browser clock is pinned to the same instant.
 - Bundled Chromium: `pnpm exec playwright install chromium`, then `pnpm e2e`.
 - Existing Chrome (needed on macOS 12): `PW_CHROME_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" pnpm e2e`.
 
-`05-screenshots.spec.ts` rewrites `docs/screenshots/{book,list,record,board}-{1440,390}.png`.
+`05-screenshots.spec.ts` rewrites `docs/screenshots/{book,list,record,reschedule,board}-{1440,390}.png`.
