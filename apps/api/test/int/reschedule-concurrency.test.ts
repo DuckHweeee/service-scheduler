@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { paths, Problem, type CreateAppointmentRequest } from '@scheduler/contracts';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { FastifyInstance } from 'fastify';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { fixedClock } from '../../src/clock.js';
-import { appointments, vehicles } from '../../src/db/schema.js';
+import { appointments, bookingEvents, inventory, vehicles } from '../../src/db/schema.js';
 import { buildTestApp, createTestDb, seedReference, type TestDb } from '../helpers/index.js';
 
 // ADR-006: reschedules take the old and the new dealership-day lock in ascending key order; the exclusion
@@ -162,6 +162,87 @@ describe('R13 crossing reschedules', () => {
       const [rowB] = await c.t.db.select().from(appointments).where(eq(appointments.reference, b.reference));
       expect(rowA!.startAt).toEqual(new Date(`${day2}T14:00:00+07:00`));
       expect(rowB!.startAt).toEqual(new Date(`${day1}T14:00:00+07:00`));
+    }
+  });
+});
+
+describe('R15b same appointment, two reschedules', () => {
+  const c = setup();
+  /**
+   * Without help, one request often finishes before the other even reads the appointment, and the second then
+   * (legitimately) moves it again. To force the interesting interleaving, an outside transaction holds the SOURCE-day
+   * lock while both requests do their pre-transaction read, so both start from the same old slot and then queue.
+   */
+  const raceBehindSourceLock = async <T>(key: string, fire: () => [Promise<T>, Promise<T>]): Promise<[T, T]> => {
+    let release!: () => void;
+    let locked!: () => void;
+    const held = new Promise<void>((r) => (release = r));
+    const gotLock = new Promise<void>((r) => (locked = r));
+    const holder = c.t.db.transaction(async (tx) => {
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${key}::text))`);
+      locked();
+      await held;
+    });
+    await gotLock;
+    const pending = Promise.all(fire());
+    await new Promise((r) => setTimeout(r, 300));
+    release();
+    await holder;
+    return pending;
+  };
+  const eventsOf = async (reference: string) => {
+    const [row] = await c.t.db.select().from(appointments).where(eq(appointments.reference, reference));
+    const ev = await c.t.db.select().from(bookingEvents).where(eq(bookingEvents.appointmentId, row!.id));
+    return { row: row!, resched: ev.filter((e) => e.type === 'APPOINTMENT_RESCHEDULED') };
+  };
+
+  it('R15b the same appointment rescheduled in parallel to two different days (10 rounds): exactly one 200, one 409 APPOINTMENT_NOT_RESCHEDULABLE, one APPOINTMENT_RESCHEDULED event, row at the winner’s slot', async () => {
+    for (let i = 0; i < 10; i++) {
+      const a = await seedBrake(c.t, { date: WORKING_DAYS[i]!, from: '10:00', to: '12:00', tech: 'TEC-03', bay: 'BAY-01' });
+      const d2 = WORKING_DAYS[10 + i]!;
+      const d3 = WORKING_DAYS[11 + i]!;
+      const [r2, r3] = await raceBehindSourceLock(`DLR-01:${WORKING_DAYS[i]}`, () => [
+        resched(c.app, a.reference, d2, '13:00'),
+        resched(c.app, a.reference, d3, '13:00'),
+      ]);
+      const rs = [r2, r3];
+      expect(rs.filter((r) => r.statusCode === 200), `round ${i}: ${r2.statusCode}/${r3.statusCode}`).toHaveLength(1);
+      const loser = rs.find((r) => r.statusCode !== 200)!;
+      expect(loser.statusCode).toBe(409);
+      expect(Problem.parse(loser.json()).code).toBe('APPOINTMENT_NOT_RESCHEDULABLE');
+      const winnerDay = r2.statusCode === 200 ? d2 : d3;
+      const { row, resched: evs } = await eventsOf(a.reference);
+      expect(evs).toHaveLength(1);
+      expect(row.startAt).toEqual(new Date(`${winnerDay}T13:00:00+07:00`));
+    }
+  });
+
+  it('R15b (SAME_DAY) today → two different later days: one winner, parts released exactly once', async () => {
+    const stockOf = async (sku: string) =>
+      (await c.t.db.select().from(inventory).where(and(eq(inventory.dealershipId, 'DLR-01'), eq(inventory.sku, sku))))[0]!.reserved;
+    const before = [await stockOf('OIL-5W30-4L'), await stockOf('FLT-OIL-CX22')];
+    for (let i = 0; i < 5; i++) {
+      const vehicleId = await newVehicle(c.t);
+      const booked = await c.app.inject({
+        method: 'POST',
+        url: paths.appointments,
+        payload: { ...bookBody(vehicleId, '2026-10-08', '12:00'), serviceTypeCode: 'OIL_CHANGE' },
+      });
+      expect(booked.statusCode, booked.body).toBe(201);
+      const reference = (booked.json() as { reference: string }).reference;
+      expect([await stockOf('OIL-5W30-4L'), await stockOf('FLT-OIL-CX22')]).toEqual(before.map((n) => n + 1));
+      const d2 = WORKING_DAYS[2 * i]!;
+      const d3 = WORKING_DAYS[2 * i + 1]!;
+      const [r2, r3] = await raceBehindSourceLock('DLR-01:2026-10-08', () => [
+        resched(c.app, reference, d2, '10:00'),
+        resched(c.app, reference, d3, '10:00'),
+      ]);
+      expect([r2.statusCode, r3.statusCode].sort(), `round ${i}`).toEqual([200, 409]);
+      const loser = r2.statusCode === 200 ? r3 : r2;
+      expect(Problem.parse(loser.json()).code).toBe('APPOINTMENT_NOT_RESCHEDULABLE');
+      const { resched: evs } = await eventsOf(reference);
+      expect(evs).toHaveLength(1);
+      expect([await stockOf('OIL-5W30-4L'), await stockOf('FLT-OIL-CX22')]).toEqual(before);
     }
   });
 });
