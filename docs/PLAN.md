@@ -85,17 +85,22 @@ W4  Opus + Huy  ── review, SYSTEM_DESIGN, README, AI narrative, video ──
 
 ## W0 — Foundation (Opus + Huy, not delegated)
 
-- [ ] `git init`, `.gitignore`, corepack pnpm, workspace, tsconfig strict, eslint/prettier, vitest workspace,
-      root scripts: `dev`, `verify`, `db:migrate`, `db:seed`, `test:int`.
+> Status (checked against the repo on 2026-10-12, W6-D2a): W0–W4 boxes are ticked where the code or a named test shows
+> it (tests named after the criteria in `apps/api/test/**`, `apps/web/src/**/*.test.tsx`, `e2e/`; counts in
+> [`quality.md`](quality.md), history in [`ai-log.md`](ai-log.md)). Waves 5–6 are summarised in [§2b](#2b-waves-56--showcase-polish).
+
+- [x] `git init`, `.gitignore`, corepack pnpm, workspace, tsconfig strict, eslint/prettier, vitest workspace,
+      root scripts: `dev`, `verify`, `db:migrate`, `db:seed`, `test:int`. *(`test:int` lives in `@scheduler/api`.)*
 - [ ] `embedded-postgres` scripts: `db:up` (persistent, `.pgdata/`), `db:down`; test global-setup starts an ephemeral one.
-- [ ] `docker-compose.yml` (postgres:18, jaeger all-in-one under profile `obs`), `.env.example`.
-- [ ] Private GitHub repo created and pushed.
-- [ ] `packages/contracts`: all enums, request/response zod schemas from SPEC §6, problem+json schema,
+      *(Done except `db:down`: `pnpm db:up` runs in the foreground and Ctrl-C stops it.)*
+- [x] `docker-compose.yml` (postgres:18, jaeger all-in-one under profile `obs`), `.env.example`.
+- [x] Private GitHub repo created and pushed.
+- [x] `packages/contracts`: all enums, request/response zod schemas from SPEC §6, problem+json schema,
       JSON fixtures (dealerships, service types, vehicles, availability day, appointment detail, board).
-- [ ] `apps/api/src/domain/availability/types.ts` exactly as SPEC §5.1 (signatures only).
-- [ ] `apps/api` + `apps/web` empty skeletons that typecheck; route stubs returning 501 for every SPEC route
+- [x] `apps/api/src/domain/availability/types.ts` exactly as SPEC §5.1 (signatures only).
+- [x] `apps/api` + `apps/web` empty skeletons that typecheck; route stubs returning 501 for every SPEC route
       (so W2 agents never edit the router).
-- [ ] `CLAUDE.md`, ADRs 001–004 (see §4), `docs/ai-log.md` started, briefs for W1 written to `docs/agent-briefs/`.
+- [x] `CLAUDE.md`, ADRs 001–004 (see §4), `docs/ai-log.md` started, briefs for W1 written to `docs/agent-briefs/`.
 
 ---
 
@@ -127,14 +132,14 @@ W4  Opus + Huy  ── review, SYSTEM_DESIGN, README, AI narrative, video ──
   8. `/health/live`, `/health/ready` (DB ping), `/docs` (Swagger UI).
   9. Test helper: per-test-file fresh schema on `TEST_DATABASE_URL` or Testcontainers fallback.
 - **Acceptance criteria:**
-  - [ ] `pnpm db:migrate && pnpm db:seed` on an empty DB succeeds twice in a row (idempotent).
-  - [ ] Integration test: inserting two overlapping CONFIRMED appointments for the same technician fails with `23P01`;
+  - [x] `pnpm db:migrate && pnpm db:seed` on an empty DB succeeds twice in a row (idempotent).
+  - [x] Integration test: inserting two overlapping CONFIRMED appointments for the same technician fails with `23P01`;
         same for bay and vehicle; a CANCELLED overlap is allowed; back-to-back `[10:00,12:00)`+`[12:00,13:00)` allowed.
-  - [ ] Integration test: technician from DLR-02 on a DLR-01 appointment is rejected by composite FK.
-  - [ ] Integration test: `inventory.reserved > on_hand` is rejected by CHECK; `partsAvailability` honours model override
+  - [x] Integration test: technician from DLR-02 on a DLR-01 appointment is rejected by composite FK.
+  - [x] Integration test: `inventory.reserved > on_hand` is rejected by CHECK; `partsAvailability` honours model override
         and DLR-02 `FLT-OIL-CX22 = 0`.
-  - [ ] `loadDayContext` test: returns busy intervals in local minutes, excludes cancelled and other days.
-  - [ ] Unknown route → 404 problem+json; malformed body → 400 problem+json with `errors[]`.
+  - [x] `loadDayContext` test: returns busy intervals in local minutes, excludes cancelled and other days.
+  - [x] Unknown route → 404 problem+json; malformed body → 400 problem+json with `errors[]`.
 - **Out of scope:** business endpoints (stubs stay 501), metrics/tracing.
 
 ### A2 — Availability engine (pure)
@@ -145,11 +150,11 @@ W4  Opus + Huy  ── review, SYSTEM_DESIGN, README, AI narrative, video ──
   `sameDayQuotaCap`; test fixtures builder
   (`makeDay({ busy: { 'TEC-01': ['10:30-11:00'] } })` style, times as strings for readability).
 - **Acceptance criteria:**
-  - [ ] Every row T1–T21 of SPEC §5.5 is a named test (`it('T5 partial overlap rejects …')`).
-  - [ ] Property test (fast-check allowed as devDep): for random busy sets, every `AVAILABLE` slot's proposed bay and tech
+  - [x] Every row T1–T21 of SPEC §5.5 is a named test (`it('T5 partial overlap rejects …')`).
+  - [x] Property test (fast-check allowed as devDep): for random busy sets, every `AVAILABLE` slot's proposed bay and tech
         are truly free and qualified; every non-available status is justified.
-  - [ ] 100% line + branch coverage on the module (`vitest --coverage`).
-  - [ ] No import of Date, DB, Fastify or luxon inside the module.
+  - [x] 100% line + branch coverage on the module (`vitest --coverage`).
+  - [x] No import of Date, DB, Fastify or luxon inside the module.
 
 ### F1 — Web shell + Book screen (on MSW)
 - **Goal:** pixel-faithful Book flow (design 01) running entirely on mocks typed by `@scheduler/contracts`.
@@ -161,12 +166,12 @@ W4  Opus + Huy  ── review, SYSTEM_DESIGN, README, AI narrative, video ──
   409 scenario** (toggle via `?mock=conflict`) and the three `sameDay.blocked` scenarios, Book screen with all states
   from SPEC §8 incl. same-day notice, Express labels, "no open time this day" panel and confirmation panel.
 - **Acceptance criteria:**
-  - [ ] All states in design 01 reachable: default, slot selected, checking, confirmed, 409 with alternatives, no-open-day,
+  - [x] All states in design 01 reachable: default, slot selected, checking, confirmed, 409 with alternatives, no-open-day,
         plus same-day: Today chip, notice, Express slots, quota-full slots, each `sameDay.blocked` panel.
-  - [ ] EV vehicle hides OIL_CHANGE; ICE vehicle hides EV_BATTERY_CHECK.
-  - [ ] Keyboard-only booking works; buttons use `aria-pressed`; disabled slots have `aria-label` with reason.
-  - [ ] Component tests: slot status → label/disabled mapping; changing service clears slot and auto-selects first open.
-  - [ ] Layout holds at 1440px and 390px wide.
+  - [x] EV vehicle hides OIL_CHANGE; ICE vehicle hides EV_BATTERY_CHECK.
+  - [x] Keyboard-only booking works; buttons use `aria-pressed`; disabled slots have `aria-label` with reason.
+  - [x] Component tests: slot status → label/disabled mapping; changing service clears slot and auto-selects first open.
+  - [x] Layout holds at 1440px and 390px wide.
 - **Out of scope:** other screens (placeholders only), real API.
 
 ---
@@ -181,15 +186,15 @@ W4  Opus + Huy  ── review, SYSTEM_DESIGN, README, AI narrative, video ──
   `GET/PUT /dealerships/{id}/inventory[/{sku}]` per SPEC §6. Export `buildAvailability(...)` from
   `services/availability.ts` — A4 reuses it for alternatives and same-day checks.
 - **Acceptance criteria:**
-  - [ ] Availability for a seeded day matches `computeSlots` on the same `DayContext` (golden test).
-  - [ ] Date outside horizon → 422 `OUTSIDE_BOOKING_HORIZON`; unknown dealer/service → 404.
-  - [ ] `proposed` resolves ids to names; times rendered with dealership offset.
-  - [ ] Board returns all bays and techs (even idle) with their confirmed appointments sorted by start.
-  - [ ] DLR-03 + WHEEL_ALIGNMENT → every slot `NO_QUALIFIED_TECHNICIAN`.
-  - [ ] Same-day (fixed clock 09:10): first slot 11:30, `isExpress: true`; brake today → `blocked: SERVICE_NOT_EXPRESS`;
+  - [x] Availability for a seeded day matches `computeSlots` on the same `DayContext` (golden test).
+  - [x] Date outside horizon → 422 `OUTSIDE_BOOKING_HORIZON`; unknown dealer/service → 404.
+  - [x] `proposed` resolves ids to names; times rendered with dealership offset.
+  - [x] Board returns all bays and techs (even idle) with their confirmed appointments sorted by start.
+  - [x] DLR-03 + WHEEL_ALIGNMENT → every slot `NO_QUALIFIED_TECHNICIAN`.
+  - [x] Same-day (fixed clock 09:10): first slot 11:30, `isExpress: true`; brake today → `blocked: SERVICE_NOT_EXPRESS`;
         DLR-02 + OIL_CHANGE + VEH-01 today → `PARTS_UNAVAILABLE`; clock 15:20 → `PAST_CUTOFF`; tomorrow → `sameDay: null`.
-  - [ ] OIL_CHANGE + VEH-02 (EV) → 422 `SERVICE_NOT_APPLICABLE`.
-  - [ ] `PUT inventory` to 0 makes same-day oil change `PARTS_UNAVAILABLE`; setting below `reserved` → 409.
+  - [x] OIL_CHANGE + VEH-02 (EV) → 422 `SERVICE_NOT_APPLICABLE`.
+  - [x] `PUT inventory` to 0 makes same-day oil change `PARTS_UNAVAILABLE`; setting below `reserved` → 409.
 
 ### A4 — Booking command (the critical path)
 - **Owns:** `apps/api/src/routes/appointments.ts`, `apps/api/src/services/{booking,cancellation,appointment-query,history}.ts`,
@@ -200,20 +205,20 @@ W4  Opus + Huy  ── review, SYSTEM_DESIGN, README, AI narrative, video ──
 - **Note:** A3 runs in parallel; until it merges, import `buildAvailability` from `services/availability.ts`
   against the signature stub Opus writes in W0.
 - **Acceptance criteria:**
-  - [ ] Happy path: 201, row persisted with the engine-chosen tech/bay, 3 success events + `SLOT_REQUESTED`.
-  - [ ] Unavailable slot → 409 with `reason` and ≤5 `alternatives`, `CHECK_FAILED` event persisted although tx rolled back.
-  - [ ] **Concurrency:** 20 parallel requests for the same window where capacity is 1 → exactly 1×201, 19×409, and DB has
+  - [x] Happy path: 201, row persisted with the engine-chosen tech/bay, 3 success events + `SLOT_REQUESTED`.
+  - [x] Unavailable slot → 409 with `reason` and ≤5 `alternatives`, `CHECK_FAILED` event persisted although tx rolled back.
+  - [x] **Concurrency:** 20 parallel requests for the same window where capacity is 1 → exactly 1×201, 19×409, and DB has
         exactly 1 confirmed row. Capacity 2 (two qualified techs + two bays) → exactly 2×201.
-  - [ ] Same `Idempotency-Key` twice → one row, second call 200 with same reference.
-  - [ ] Vehicle already booked in an overlapping window at another dealership → 409 `VEHICLE_ALREADY_BOOKED`.
-  - [ ] Validation: misaligned start (10:15), outside hours (16:00 for 120m), weekend, past/too-far date, vehicle not owned.
-  - [ ] Cancel frees the slot (same window bookable again); cancelling a past appointment → 409; double cancel → 200.
-  - [ ] Detail returns history in order with summaries matching design 03 wording.
-  - [ ] Same-day: booking reserves parts (inventory.reserved +1 per line), channel `SAME_DAY`; cancel releases them;
+  - [x] Same `Idempotency-Key` twice → one row, second call 200 with same reference.
+  - [x] Vehicle already booked in an overlapping window at another dealership → 409 `VEHICLE_ALREADY_BOOKED`.
+  - [x] Validation: misaligned start (10:15), outside hours (16:00 for 120m), weekend, past/too-far date, vehicle not owned.
+  - [x] Cancel frees the slot (same window bookable again); cancelling a past appointment → 409; double cancel → 200.
+  - [x] Detail returns history in order with summaries matching design 03 wording.
+  - [x] Same-day: booking reserves parts (inventory.reserved +1 per line), channel `SAME_DAY`; cancel releases them;
         non-express → 422; before lead time → 422 `LEAD_TIME_NOT_MET`.
-  - [ ] Same-day quota: 10 parallel same-day requests for overlapping windows with free resources → exactly `quotaCap` succeed.
-  - [ ] Parts race: stock 1, two parallel same-day oil changes at non-overlapping times → exactly 1×201, 1×409 `PARTS_UNAVAILABLE`.
-  - [ ] Mutation check documented in report: with the advisory lock removed the concurrency test still never
+  - [x] Same-day quota: 10 parallel same-day requests for overlapping windows with free resources → exactly `quotaCap` succeed.
+  - [x] Parts race: stock 1, two parallel same-day oil changes at non-overlapping times → exactly 1×201, 1×409 `PARTS_UNAVAILABLE`.
+  - [x] Mutation check documented in report: with the advisory lock removed the concurrency test still never
         double-books (constraint catches it) — proves defence in depth.
 
 ### F2 — Record, List and Board screens (on MSW)
@@ -272,11 +277,34 @@ W4  Opus + Huy  ── review, SYSTEM_DESIGN, README, AI narrative, video ──
   examples of AI output that was rejected/corrected).
 - Video outline (5–10 min) mapped to the PDF's 5 required points.
 
+Status: done — W4 review and fresh-clone run-through, W4-D1 docs pass ([`ai-log.md`](ai-log.md#wave-4--independent-review--fresh-clone-run-through-2026-10-09)).
+
+---
+
+## 2b. Waves 5–6 — showcase polish
+
+Approved by Huy on 2026-10-12: reschedule in place (S7), measurable quality evidence, Docker + Grafana + k6, CI, docs.
+Authentication and technician shifts stay future work (design sketches in [System Design §10](SYSTEM_DESIGN.md#10-future-work)).
+Executed by the project agents in `.claude/agents/` (worktrees); Opus gates and merges. Briefs in [`agent-briefs/`](agent-briefs/).
+
+| WP | Owner | Scope | Status |
+|---|---|---|---|
+| W5-0a | Opus | SPEC v0.3 §6.5 (R1–R15), contracts, `day-plan` `excludeAppointmentId` / `partsHeld`, ADR-006 | merged |
+| W5-0b | db-architect | `loadDayContext({ excludeAppointmentId })`, no migration | merged |
+| W5-Q1 | sched-qa | coverage thresholds (engine 100%), Stryker on `src/domain/**`, [`quality.md`](quality.md) | merged |
+| W5-F4 | frontend-dev | reschedule screen (built on MSW) | merged |
+| W5-A8 | backend-dev | `POST /appointments/{ref}/reschedule` in place, R1–R15 + R15b (added after the gate) | merged |
+| W6-O1 | backend-dev | Docker images, compose `app` / `obs` profiles, Prometheus + Grafana, k6 load test + invariant SQL, [`performance.md`](performance.md) | merged |
+| W5 integration | Opus | reschedule e2e on the real API, reschedule screenshots, OTel head sampling in compose | done on `main` |
+| W5-Q2 | sched-qa | independent adversarial review of reschedule (30 tests); found a lock-order deadlock and a no-op 422, fixed by Opus | merged |
+| D2b | Opus | CI jobs `coverage`, `e2e`, `docker`; weekly `mutation.yml` | on `main`; not yet run on GitHub (nothing pushed) |
+| W6-D2a | general-purpose | this documentation pass: README evidence, SYSTEM_DESIGN reschedule + scalability, quality / observability refresh, plan status, video outline | in review |
+
 ## 3. Risks
 
 | Risk | Mitigation |
 |---|---|
-| No Docker on macOS 12 | `embedded-postgres` (verified: PG 18.4 + btree_gist + EXCLUDE on this Mac); compose file for reviewers |
+| No Docker on the original dev Mac (macOS 12). Since Wave 5 the work runs on a Mac mini M4 with Docker. | `embedded-postgres` (verified: PG 18.4 + btree_gist + EXCLUDE) stays the default no-Docker path for dev, tests and e2e; Docker compose (`app` / `obs` profiles) runs the full stack, Grafana and the load test |
 | Clock-dependent same-day logic is flaky | injectable `Clock`, `CLOCK_OVERRIDE` for demos, engine takes `nowMin` as input |
 | Parallel agents collide | exclusive *Owns* lists; router + contracts + types pre-created by Opus in W0 |
 | Timezone bugs | single `time.ts` module, DST-zone tests, engine works in local minutes only |
