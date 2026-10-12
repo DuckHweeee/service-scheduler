@@ -1,4 +1,9 @@
-# Optional for reviewers with Docker. Local dev without Docker: `pnpm db:up` (embedded-postgres, same port/credentials).
+# Profiles
+#   (none)         postgres only: `docker compose up -d postgres` (non-Docker dev path, same port/credentials as `pnpm db:up`)
+#   app            postgres -> migrate (+ seed when empty) -> api -> web      : http://localhost:5173
+#   obs            jaeger, prometheus, grafana (anonymous viewer)             : :16686, :9090, :3001
+# Host ports can be overridden when something else already listens (PG_PORT, API_PORT, WEB_PORT, GRAFANA_PORT,
+# PROMETHEUS_PORT). If you change API_PORT/WEB_PORT also set API_PUBLIC_URL / WEB_ORIGIN (the browser-facing URLs).
 services:
   postgres:
     image: postgres:18
@@ -6,15 +11,89 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: scheduler
-    ports: ["54329:5432"]
+    ports: ["${PG_PORT:-54329}:5432"]
     volumes: [pgdata:/var/lib/postgresql]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 2s
       retries: 30
+
+  migrate:
+    profiles: [app]
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    image: scheduler-api:local
+    command: ["sh", "/ops/migrate-seed.sh"]
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/scheduler
+      CLOCK_OVERRIDE: ${CLOCK_OVERRIDE:-}
+    volumes: ["./ops/migrate-seed.sh:/ops/migrate-seed.sh:ro"]
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: "no"
+
+  api:
+    profiles: [app]
+    image: scheduler-api:local
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/scheduler
+      PORT: "3000"
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      CORS_ORIGIN: ${WEB_ORIGIN:-http://localhost:5173}
+      # Pin "now" for demos, e.g. CLOCK_OVERRIDE=2026-10-08T09:10:00+07:00 docker compose --profile app up -d
+      CLOCK_OVERRIDE: ${CLOCK_OVERRIDE:-}
+      # Tracing is off when empty. With the obs profile: OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4318
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+    ports: ["${API_PORT:-3000}:3000"]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  web:
+    profiles: [app]
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_URL: ${API_PUBLIC_URL:-http://localhost:3000}
+        VITE_USE_MOCKS: "false"
+        VITE_CUSTOMER_ID: ${VITE_CUSTOMER_ID:-CUS-10482}
+    image: scheduler-web:local
+    ports: ["${WEB_PORT:-5173}:80"]
+    depends_on:
+      api: { condition: service_healthy }
+
   jaeger:
     profiles: [obs]
     image: jaegertracing/all-in-one:1.62.0
+    environment:
+      # in-memory storage is unbounded by default: at ~700 req/s (100% sampling) it grew until the kernel OOM-killed it and
+      # stalled the Docker VM for ~1 min. Cap the trace count and the container.
+      MEMORY_MAX_TRACES: "20000"
+    mem_limit: 1g
     ports: ["16686:16686", "4318:4318"]
+
+  prometheus:
+    profiles: [obs]
+    image: prom/prometheus:v3.5.0
+    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=2d"]
+    volumes: ["./ops/prometheus.yml:/etc/prometheus/prometheus.yml:ro"]
+    ports: ["${PROMETHEUS_PORT:-9090}:9090"]
+
+  grafana:
+    profiles: [obs]
+    image: grafana/grafana:12.1.0
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_AUTH_DISABLE_LOGIN_FORM: "false"
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/scheduler.json
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+      - ./ops/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./ops/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports: ["${GRAFANA_PORT:-3001}:3000"]
+    depends_on: [prometheus]
+
 volumes:
   pgdata:

@@ -19,7 +19,9 @@
     "db:migrate": "pnpm --filter @scheduler/api db:migrate",
     "db:seed": "pnpm --filter @scheduler/api db:seed",
     "coverage": "pnpm -r test:coverage",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "loadtest:seed": "pnpm --filter @scheduler/api exec tsx ../../loadtest/seed-load.ts",
+    "loadtest:run": "docker run --rm -i --add-host=host.docker.internal:host-gateway -e BASE_URL -e DURATION -e BROWSE_RATE -e CONTEND_VUS -e LT_CUSTOMERS -e DAYS -v \"$PWD/loadtest:/loadtest:ro\" grafana/k6:1.2.1 run /loadtest/booking.js"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",
