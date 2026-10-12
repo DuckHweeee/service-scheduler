@@ -123,3 +123,46 @@ jobs:
         with:
           name: playwright-traces
           path: test-results/
+
+  # W6-O1: images build on amd64, the compose stack boots, Prometheus scrapes the API, and a short k6 run leaves
+  # zero invariant violations (loadtest/verify-invariants.sql must return no rows).
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Enable pnpm via corepack
+        run: corepack enable
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build and start app + obs
+        run: docker compose --profile app --profile obs up --build -d --wait
+
+      - name: Health and Prometheus target
+        run: |
+          curl -fsS http://localhost:3000/health/ready
+          curl -fsS http://localhost:5173/ > /dev/null
+          for i in $(seq 1 15); do
+            curl -fsS http://localhost:9090/api/v1/targets | grep -q '"health":"up"' && exit 0
+            sleep 2
+          done
+          echo "Prometheus target api never came up" && exit 1
+
+      - name: Short k6 load test + invariants
+        run: |
+          pnpm loadtest:seed
+          BASE_URL=http://host.docker.internal:3000 DURATION=30s DAYS=10 pnpm loadtest:run
+          out=$(docker compose exec -T postgres psql -U postgres -d scheduler -tA -v ON_ERROR_STOP=1 -f - < loadtest/verify-invariants.sql)
+          test -z "$out" || { echo "$out"; exit 1; }
+
+      - name: Logs on failure
+        if: failure()
+        run: docker compose --profile app --profile obs logs --tail=200
+
+      - name: Tear down
+        if: always()
+        run: docker compose --profile app --profile obs down -v

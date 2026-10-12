@@ -200,5 +200,25 @@ Auth and technician shifts stay future work. Executed through the project agents
 - **Deny rules vs. orchestrator:** the project's `Edit(docs/SPEC.md)` / `Edit(packages/contracts/**)` deny rules also block
   Opus. Opus did not route around them through the shell; Huy lifts them temporarily for the SPEC v0.3 edit.
 
+- **W5-0a (Opus):** SPEC v0.3 §6.5 (R1–R15), contracts, `day-plan` `excludeAppointmentId` / `partsHeld`, ADR-006.
+  Mutation: exclusion dropped from the vehicle-busy filter → the new day-plan test red.
+- **W5-F4 (frontend-dev):** reschedule screen on MSW. Gate: mutation "never mark Current" → the Current-slot test red.
+  Three small out-of-scope but backward-compatible props (`SlotGrid.currentStart`, `Summary.confirmLabel`, a CSS rule).
+- **W5-A8 (backend-dev):** reschedule in place. **Gate caught a real gap:** the agent's own mutation (b) — lock only the
+  new day — left every test green. Opus explained what the old-day lock is for (two reschedules of the *same*
+  appointment to different days lock disjoint keys, both pass, last writer wins, SAME_DAY parts double-released) and sent
+  it back. The agent added **R15b**, made it deterministic by holding the source-day lock from an outside transaction
+  while both requests pre-read; Opus reproduced: lock removed → both R15b tests red (one variant even 500s), restored → green.
+- **W6-O1 (backend-dev):** Docker images (multi-arch, non-root, healthchecks), compose `app`/`obs`, Prometheus,
+  provisioned Grafana, k6 + `verify-invariants.sql` (proven to detect an overlap with the constraints dropped).
+  Found: Jaeger OOM-killed at 100% sampling under ~700 req/s → Opus added `OTEL_TRACES_SAMPLER=parentbased_traceidratio`
+  (10%) to compose. Found: `reference = nextval % 10000` can collide per date at scale → README limitation.
+- **Integration (Opus):** `pnpm e2e` on the real API first failed 3/16 — **test-data, not app**: the grid is not
+  vehicle-aware, so the first AVAILABLE slot overlapped VEH-01 bookings left by earlier specs (409
+  `VEHICLE_ALREADY_BOOKED`), and the first "Upcoming" row was checked in (no Reschedule button). Fixed with
+  `firstSlotFreeForVehicle()` + explicit slot clicks; a first attempt that changed `firstOpenSlot` itself broke the Book
+  screenshot (the UI auto-selects the first AVAILABLE) and was reverted. → **16/16 green**. Docker stack with merged code:
+  book → reschedule via API in containers, `reschedule_attempts_total` scraped by Prometheus, Grafana healthy, torn down.
+
 ## Parked (decide later)
 - Board "incoming request / rejected / reserved" panels from the mock.
