@@ -220,5 +220,16 @@ Auth and technician shifts stay future work. Executed through the project agents
   screenshot (the UI auto-selects the first AVAILABLE) and was reverted. → **16/16 green**. Docker stack with merged code:
   book → reschedule via API in containers, `reschedule_attempts_total` scraped by Prometheus, Grafana healthy, torn down.
 
+- **W5-Q2 (sched-qa, independent adversarial review — did not write the code):** 30 new tests; 27 regression tests
+  passed (grid ↔ reschedule golden check over every slot, 422 parity with booking, parts rollback after a 409 at every
+  step, metric labels free of PII). **It found a deadlock that R1–R15b and every gate missed:** SAME_DAY → ADVANCE
+  released parts (inventory rows) *before* the guarded UPDATE of the appointment row, while cancel / check-in / the
+  no-show sweeper lock row → parts. Forced interleaving → 40P01 → HTTP 500 (D1 vs cancel, D2 vs sweeper). R15 raced only
+  ADVANCE appointments without parts, so it never took inventory locks. Also D3 (low): a no-op on an ADVANCE booking whose
+  day became "today" answered 422 `SERVICE_NOT_EXPRESS` because target rules ran before the idempotency shortcut.
+  **Opus reproduced all three** (defect tests as plain `it` → exactly those 3 red), then fixed: `SELECT … FOR UPDATE` on
+  the appointment first (one lock order everywhere), no-op check before target rules. Mutation: `FOR UPDATE` removed →
+  D1, D2 red. Lesson: a concurrency test only covers the lock paths its fixtures exercise.
+
 ## Parked (decide later)
 - Board "incoming request / rejected / reserved" panels from the mock.
