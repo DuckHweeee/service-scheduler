@@ -25,6 +25,19 @@ export function createTelemetry(m: Metrics, getLog: () => LogLike): Telemetry {
         'booking attempt',
       );
     },
+    rescheduleAttempt: (a) => {
+      m.rescheduleAttempts.inc({ outcome: a.outcome, reason: a.reason });
+      getLog().info(
+        {
+          dealershipId: a.dealershipId,
+          serviceTypeCode: a.serviceTypeCode,
+          outcome: a.outcome,
+          reason: a.reason,
+          durationMs: a.durationMs,
+        },
+        'reschedule attempt',
+      );
+    },
     observeReserve: (s) => m.reserveDuration.observe(s),
     observeLockWait: (s) => m.lockWait.observe(s),
     observeAvailability: (s, sameDay) => m.availabilityDuration.observe({ same_day: String(sameDay) }, s),

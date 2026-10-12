@@ -174,3 +174,56 @@ describe('GET /dealerships/:id/availability', () => {
     expect(body.errors?.map((e) => e.path)).toEqual(expect.arrayContaining(['date', 'vehicleId']));
   });
 });
+
+describe('availability excludeReference (reschedule screen, SPEC §6.5)', () => {
+  const REF = 'APT-20261009-0001'; // VEH-01, DLR-01, BRAKE_PAD_REPLACEMENT, Fri 2026-10-09 10:00–12:00, TEC-03 / BAY-01
+  const withExclude = (dealership: string, service: string, date: string, vehicle: string, ref: string) =>
+    app.inject({
+      method: 'GET',
+      url: `${paths.availability(dealership)}?serviceType=${service}&date=${date}&vehicleId=${vehicle}&excludeReference=${ref}`,
+    });
+
+  it('the appointment’s own window shows AVAILABLE only when it is excluded', async () => {
+    // TEC-01 busy all day on 2026-10-09: TEC-03 (held by the appointment itself) is the only brake technician left.
+    await t.db.insert(appointments).values({
+      reference: 'APT-20261009-0002',
+      status: 'CONFIRMED',
+      channel: 'ADVANCE',
+      customerId: 'CUS-10482',
+      vehicleId: 'VEH-02',
+      dealershipId: 'DLR-01',
+      serviceTypeCode: 'EV_BATTERY_CHECK',
+      technicianId: 'TEC-01',
+      serviceBayId: 'BAY-04',
+      startAt: toInstant('2026-10-09', 8 * 60, 'Asia/Ho_Chi_Minh'),
+      endAt: toInstant('2026-10-09', 17 * 60, 'Asia/Ho_Chi_Minh'),
+      durationMin: 540,
+    });
+    const without = await ok(app, 'DLR-01', 'BRAKE_PAD_REPLACEMENT', '2026-10-09');
+    expect(without.slots.find((s) => s.startTime === '10:00')!.status).not.toBe('AVAILABLE');
+
+    const res = await withExclude('DLR-01', 'BRAKE_PAD_REPLACEMENT', '2026-10-09', 'VEH-01', REF);
+    expect(res.statusCode, res.body).toBe(200);
+    const body = AvailabilityResponse.parse(res.json());
+    expect(body.slots.find((s) => s.startTime === '10:00')).toMatchObject({ status: 'AVAILABLE', proposed: { technician: { id: 'TEC-03' } } });
+    expect(body.slots.find((s) => s.startTime === '10:30')!.status).toBe('AVAILABLE'); // overlaps only itself
+  });
+
+  it('unknown reference → 404 NOT_FOUND', async () => {
+    const res = await withExclude('DLR-01', 'BRAKE_PAD_REPLACEMENT', '2026-10-09', 'VEH-01', 'APT-20261009-7777');
+    expect(res.statusCode).toBe(404);
+    expect(Problem.parse(res.json()).code).toBe('NOT_FOUND');
+  });
+
+  it('different dealership / service / vehicle → 422 RESCHEDULE_SCOPE_MISMATCH', async () => {
+    for (const [d, s, v] of [
+      ['DLR-02', 'BRAKE_PAD_REPLACEMENT', 'VEH-01'],
+      ['DLR-01', 'WHEEL_ALIGNMENT', 'VEH-01'],
+      ['DLR-01', 'BRAKE_PAD_REPLACEMENT', 'VEH-02'],
+    ] as const) {
+      const res = await withExclude(d, s, '2026-10-09', v, REF);
+      expect(res.statusCode, `${d} ${s} ${v}`).toBe(422);
+      expect(Problem.parse(res.json()).code).toBe('RESCHEDULE_SCOPE_MISMATCH');
+    }
+  });
+});

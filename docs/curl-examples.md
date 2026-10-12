@@ -108,6 +108,18 @@ curl -s "$API/appointments?customerId=CUS-10482&status=CONFIRMED"   # 200 {items
 curl -s $API/appointments/APT-00000000-0000                         # 404 NOT_FOUND
 ```
 
+## 4b. Reschedule
+
+```bash
+# Availability as if the appointment did not exist (its own window shows AVAILABLE): 200
+curl -s "$API/dealerships/DLR-01/availability?serviceType=OIL_CHANGE&date=$FUTURE&vehicleId=VEH-01&excludeReference=$REF"
+
+# Move it in place to 09:00: 200, same reference, history ends with "Rescheduled from 08:00 to 09:00 — Bay n, <technician>"
+curl -s -X POST $API/appointments/$REF/reschedule -H "$JSON" -d '{
+  "date":"'$FUTURE'","startTime":"09:00","bookingSessionId":"66666666-6666-4666-8666-666666666666"}'
+# Same target again: 200, nothing changes. Refusals: 409 SLOT_UNAVAILABLE | VEHICLE_ALREADY_BOOKED | PARTS_UNAVAILABLE | APPOINTMENT_NOT_RESCHEDULABLE
+```
+
 ## 5. Cancel
 
 ```bash

@@ -7,6 +7,7 @@ export interface Metrics {
   registry: Registry;
   httpDuration: Histogram<'method' | 'route' | 'status_code'>;
   bookingAttempts: Counter<'outcome' | 'reason' | 'channel'>;
+  rescheduleAttempts: Counter<'outcome' | 'reason'>;
   reserveDuration: Histogram;
   lockWait: Histogram;
   availabilityDuration: Histogram<'same_day'>;
@@ -31,6 +32,12 @@ export function createMetrics(): Metrics {
       name: 'booking_attempts_total',
       help: 'Booking attempts by outcome (created|replayed|rejected|invalid), reason and channel',
       labelNames: ['outcome', 'reason', 'channel'],
+      registers,
+    }),
+    rescheduleAttempts: new Counter({
+      name: 'reschedule_attempts_total',
+      help: 'Reschedule attempts by outcome (rescheduled|unchanged|rejected|invalid) and reason',
+      labelNames: ['outcome', 'reason'],
       registers,
     }),
     reserveDuration: new Histogram({
