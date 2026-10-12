@@ -9,7 +9,7 @@ import { releaseLateSameDay } from '../../src/services/no-show-sweeper.js';
 import { buildTestApp, createTestDb, seedReference, type TestDb } from '../helpers/index.js';
 
 // W5-Q2: independent adversarial review of reschedule (SPEC §6.5, ADR-006). Everything here is ADDITIVE to R1-R15b.
-// Confirmed defects are kept as `it.fails(...)` with the defect in the title. Do not "fix" them here.
+// The three defects it found (Q2-D1..D3) were fixed by Opus; their tests now guard the fix (see docs/ai-log.md W5-Q2).
 // Fixed clock: Thursday 2026-10-08 09:10 (+07:00) unless a describe says otherwise. Same-day earliest start 11:30, quota cap 1.
 const TODAY = '2026-10-08';
 
@@ -283,7 +283,7 @@ describe('review: same-day lead time is evaluated against the injected clock at 
   // SPEC §6.5: "Target equals the current date + startTime → 200, nothing changes, no event". Implementation validates the
   // target first (booking's lead-time / express rules for "today"), so an ADVANCE appointment that has become "today"
   // answers the no-op with 422 instead of 200. Low severity; the SPEC order of operations is ambiguous, Opus decides.
-  it.fails('DEFECT(low) no-op target on an ADVANCE appointment that is now "today" answers 422 SERVICE_NOT_EXPRESS instead of 200 (SPEC §6.5 idempotency)', async () => {
+  it('Q2-D3 no-op target on an ADVANCE appointment whose day is now "today" → 200 unchanged, not 422 SERVICE_NOT_EXPRESS (SPEC §6.5 idempotency)', async () => {
     env.clock.set('2026-10-08T09:10:00+07:00');
     const a = await book(env, { serviceTypeCode: 'BRAKE_PAD_REPLACEMENT', date: '2026-10-20', startTime: '10:00' });
     env.clock.set('2026-10-20T08:00:00+07:00');
@@ -661,7 +661,7 @@ describe('review: real races, forced into a specific interleaving with a row loc
   // sweeper already race safely" — true for ADVANCE and SAME_DAY → SAME_DAY, false for SAME_DAY → ADVANCE.
   // Fix direction (not applied): run the guarded UPDATE before releaseParts, or `SELECT … FOR UPDATE` the appointment
   // first, so the order is always appointment → inventory.
-  it.fails('DEFECT(high) SAME_DAY → ADVANCE reschedule ∥ cancel of the same appointment deadlocks (40P01 → HTTP 500) instead of 200+409 (SPEC §6.5 "cancel … that commits while the reschedule runs")', async () => {
+  it('Q2-D1 SAME_DAY → ADVANCE reschedule ∥ cancel of the same appointment → cancel 200 + reschedule 409, no 40P01 deadlock (SPEC §6.5)', async () => {
     const a = await sameDayOil('16:00');
     const h = await hold(env, APPT_LOCK, [a.reference]); // cancel queues first on the appointment row...
     const cancelP = cancel(env, a.reference);
@@ -676,7 +676,7 @@ describe('review: real races, forced into a specific interleaving with a row loc
     expect(r.statusCode).toBe(409);
   });
 
-  it.fails('DEFECT(high) SAME_DAY → ADVANCE reschedule ∥ no-show sweeper on the same appointment deadlocks (40P01 → HTTP 500 / sweeper error)', async () => {
+  it('Q2-D2 SAME_DAY → ADVANCE reschedule ∥ no-show sweeper on the same appointment → sweeper wins, reschedule 409, no 40P01 deadlock', async () => {
     const a = await sameDayOil('13:30');
     const h = await hold(env, APPT_LOCK, [a.reference]);
     const sweep = releaseLateSameDay(env.t.db, fixedClock('2026-10-08T13:46:00+07:00')).then(

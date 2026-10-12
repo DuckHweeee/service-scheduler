@@ -11,7 +11,7 @@ import type { Db } from '../db/client.js';
 import { appointmentParts, appointments, bookingEvents, inventory } from '../db/schema.js';
 import { checkWindow } from '../domain/availability/index.js';
 import { DomainError, notFound } from '../domain/errors.js';
-import { formatLocalTime, localDateOf, localMinutesOf, toInstant } from '../domain/time.js';
+import { formatLocalTime, localDateOf, localMinutesOf, parseLocalTime, toInstant } from '../domain/time.js';
 import { getTelemetry, startTimer, type RescheduleAttempt } from '../observability/telemetry.js';
 import { pgErrorCode } from '../plugins/error-handler.js';
 import { getAppointmentDetail } from './appointment-query.js';
@@ -95,11 +95,13 @@ async function reschedule(
   const oldDate = localDateOf(appt.startAt, tz);
   const oldStartMin = localMinutesOf(appt.startAt, tz);
 
-  const { startMin, endMin } = validateTarget(plan, body.date, body.startTime);
-  if (body.date === oldDate && startMin === oldStartMin) {
-    ctx.unchanged = true; // natural idempotency: nothing changes, no event
+  // Natural idempotency (§6.5) before the target rules: the current slot was valid when it was booked, and an
+  // ADVANCE booking whose day has become "today" must not start failing same-day rules for not moving (W5-Q2).
+  if (body.date === oldDate && parseLocalTime(body.startTime) === oldStartMin) {
+    ctx.unchanged = true; // nothing changes, no event
     return getAppointmentDetail(db, reference);
   }
+  const { startMin, endMin } = validateTarget(plan, body.date, body.startTime);
 
   const startAt = toInstant(body.date, startMin, tz);
   const endAt = toInstant(body.date, endMin, tz);
@@ -133,7 +135,9 @@ async function reschedule(
 
       // Fresh view under the locks. A change to this very appointment (cancel, check-in, no-show, or another
       // reschedule that moved it off the day we locked) means our locks may not cover it any more: refuse.
-      const [cur] = await tx.select().from(appointments).where(eq(appointments.id, appt.id));
+      // FOR UPDATE takes the appointment row before any inventory row, the same order as cancel / check-in / the
+      // no-show sweeper (row, then parts). Releasing parts first deadlocked against them (40P01, found by W5-Q2).
+      const [cur] = await tx.select().from(appointments).where(eq(appointments.id, appt.id)).for('update');
       if (!cur) throw notFound('Appointment', reference);
       assertReschedulable(cur, clock.now());
       if (localDateOf(cur.startAt, tz) !== oldDate) throw notReschedulable(reference, 'was moved by a concurrent request');
