@@ -197,7 +197,8 @@ docs/                system design, spec, ADRs, quality + performance evidence, 
 - The availability grid does not mark slots where the customer's vehicle is already booked elsewhere; booking or
   rescheduling into one returns 409 `VEHICLE_ALREADY_BOOKED` (the 409 alternatives do skip them).
 - Appointment references are `APT-<date>-<nextval % 10000>`: at scale (10,000+ bookings between two on the same date)
-  two can collide, and the unique constraint then fails the second insert.
+  two can collide; the unique constraint then rejects the second insert, which the API answers with a 500 (only `23P01`
+  is mapped to 409). A per-date counter or a longer suffix would remove it.
 - Reschedule keeps the dealership and service (another dealership or service is a cancel plus a new booking).
   Notifications are out of scope.
 - Docker: tracing is head-sampled at 10% in compose by default (100% OOM-killed the in-memory Jaeger under load); the
