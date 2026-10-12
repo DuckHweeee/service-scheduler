@@ -1,4 +1,4 @@
-import { and, eq, gte, lt } from 'drizzle-orm';
+import { and, eq, gte, lt, ne } from 'drizzle-orm';
 import type { DayContext, Interval } from '../../domain/availability/types.js';
 import { addLocalDays, localMinutesOf, parseLocalTime, toInstant, isWorkingDay } from '../../domain/time.js';
 import type { DbOrTx } from '../client.js';
@@ -8,6 +8,8 @@ import { listBays, listTechnicians, type DealershipRow } from './reference.js';
 export interface LoadDayContextOptions {
   /** Pass for "today" (same-day channel); null for any other day. */
   sameDay: { earliestStart: number; quotaCap: number } | null;
+  /** Reschedule (SPEC §6.5): treat this appointment as absent — its bay, technician and quota share count as free. */
+  excludeAppointmentId?: string;
 }
 
 /**
@@ -43,6 +45,7 @@ export const loadDayContext = async (
         eq(appointments.status, 'CONFIRMED'),
         gte(appointments.startAt, from),
         lt(appointments.startAt, to),
+        opts.excludeAppointmentId ? ne(appointments.id, opts.excludeAppointmentId) : undefined,
       ),
     );
 

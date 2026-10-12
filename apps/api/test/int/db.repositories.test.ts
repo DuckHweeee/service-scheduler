@@ -147,4 +147,49 @@ describe('loadDayContext', () => {
     const sat = await loadDayContext(t.db, dlr1, '2026-10-10', { sameDay: null });
     expect(sat.isWorkingDay).toBe(false);
   });
+
+  describe('excludeAppointmentId', () => {
+    const XDAY = '2026-10-14'; // Wednesday; no other test writes this date
+    const strip = ({ s: _s, e: _e, date: _d, ...rest }: ReturnType<typeof row>) => rest as typeof appointments.$inferInsert;
+    const sameDayOpts = { sameDay: { earliestStart: 600, quotaCap: 2 } };
+    let sameDayId: string;
+    let otherDayId: string;
+
+    beforeAll(async () => {
+      const ids = await t.db
+        .insert(appointments)
+        .values([
+          strip(row('APT-20261014-2001', { s: '09:00', e: '10:00', durationMin: 60, date: XDAY })),
+          strip(
+            row('APT-20261014-2002', {
+              s: '13:00', e: '13:45', durationMin: 45, channel: 'SAME_DAY', date: XDAY,
+              vehicleId: 'VEH-02', technicianId: 'TEC-02', serviceBayId: 'BAY-02',
+            }),
+          ),
+          strip(row('APT-20261015-2003', { s: '09:00', e: '10:00', durationMin: 60, date: '2026-10-15' })),
+        ])
+        .returning({ id: appointments.id, reference: appointments.reference });
+      otherDayId = ids.find((r) => r.reference === 'APT-20261015-2003')!.id;
+      sameDayId = ids.find((r) => r.reference === 'APT-20261014-2002')!.id;
+    });
+
+    it('drops the excluded SAME_DAY row from its bay, technician and sameDayBusy; the other row is untouched', async () => {
+      const day = await loadDayContext(t.db, dlr1, XDAY, { ...sameDayOpts, excludeAppointmentId: sameDayId });
+      const bay = (id: string) => day.bays.find((b) => b.id === id)!;
+      const tech = (id: string) => day.technicians.find((x) => x.id === id)!;
+      expect(bay('BAY-02').busy).toEqual([]);
+      expect(tech('TEC-02').busy).toEqual([]);
+      expect(day.sameDay!.sameDayBusy).toEqual([]);
+      expect(bay('BAY-01').busy).toEqual([{ start: 540, end: 600 }]);
+      expect(tech('TEC-01').busy).toEqual([{ start: 540, end: 600 }]);
+    });
+
+    it('excluding an id from another day, or one that does not exist, changes nothing', async () => {
+      const baseline = await loadDayContext(t.db, dlr1, XDAY, sameDayOpts);
+      expect(baseline.sameDay!.sameDayBusy).toEqual([{ start: 780, end: 825 }]);
+      for (const excludeAppointmentId of [otherDayId, '00000000-0000-4000-8000-000000000000']) {
+        expect(await loadDayContext(t.db, dlr1, XDAY, { ...sameDayOpts, excludeAppointmentId })).toEqual(baseline);
+      }
+    });
+  });
 });
