@@ -45,3 +45,81 @@ jobs:
 
       - name: Build web
         run: pnpm --filter @scheduler/web build
+
+  coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Enable pnpm via corepack
+        run: corepack enable
+      - name: Locate pnpm store
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-${{ runner.os }}-
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Fails if the api thresholds are not met (engine 100%, global floor) — see docs/quality.md
+      - name: Coverage
+        run: pnpm coverage
+
+      - name: Coverage summary
+        if: always()
+        run: |
+          for p in api web; do
+            f="apps/$p/coverage/coverage-summary.json"
+            [ -f "$f" ] || continue
+            echo "### Coverage: $p" >> "$GITHUB_STEP_SUMMARY"
+            node -e "const t=require('./$f').total;console.log('| metric | % | covered/total |\n|---|---|---|\n'+['statements','branches','functions','lines'].map(k=>'| '+k+' | '+t[k].pct+' | '+t[k].covered+'/'+t[k].total+' |').join('\n'))" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: |
+            apps/api/coverage/
+            apps/web/coverage/
+
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Enable pnpm via corepack
+        run: corepack enable
+      - name: Locate pnpm store
+        id: pnpm-store
+        run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            pnpm-store-${{ runner.os }}-
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      # Starts embedded Postgres + API + Vite itself (e2e/support/global-setup.ts)
+      - name: Playwright
+        run: pnpm e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: test-results/

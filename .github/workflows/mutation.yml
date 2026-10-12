@@ -1,0 +1,37 @@
+name: Mutation
+
+# Stryker on apps/api/src/domain/** (unit tests only, ~20 s locally). Not on every push: run on demand and weekly.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * 1'
+
+jobs:
+  mutation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Enable pnpm via corepack
+        run: corepack enable
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Stryker
+        run: pnpm --filter @scheduler/api mutation
+
+      - name: Mutation summary
+        if: always()
+        run: |
+          f=apps/api/reports/mutation/mutation.json
+          [ -f "$f" ] || exit 0
+          node -e "const r=require('./$f');const c={};for(const x of Object.values(r.files))for(const m of x.mutants)c[m.status]=(c[m.status]||0)+1;const det=(c.Killed||0)+(c.Timeout||0);const valid=det+(c.Survived||0)+(c.NoCoverage||0);console.log('### Mutation score: '+(100*det/valid).toFixed(2)+'%\n\n| status | count |\n|---|---|\n'+Object.entries(c).map(([k,v])=>'| '+k+' | '+v+' |').join('\n'))" >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mutation-report
+          path: apps/api/reports/mutation/
