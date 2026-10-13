@@ -21,12 +21,12 @@ const slot = (startTime: string, status: SlotStatus, isExpress = false): Availab
 
 describe('slot status mapping', () => {
   const cases: [SlotStatus, boolean, string][] = [
-    ['AVAILABLE', false, 'Available'],
-    ['AVAILABLE', true, 'Express slot'],
-    ['NO_QUALIFIED_TECHNICIAN', false, 'No qualified tech'],
-    ['NO_BAY', false, 'No bay free'],
-    ['FULLY_BOOKED', false, 'Fully booked'],
-    ['SAME_DAY_QUOTA_REACHED', true, 'Same-day quota full'],
+    ['AVAILABLE', false, 'Free'],
+    ['AVAILABLE', true, 'Express'],
+    ['NO_QUALIFIED_TECHNICIAN', false, 'No technician'],
+    ['NO_BAY', false, 'No bay'],
+    ['FULLY_BOOKED', false, 'Booked up'],
+    ['SAME_DAY_QUOTA_REACHED', true, 'Today is full'],
   ];
   it.each(cases)('%s (express=%s) → "%s"', (status, express, label) => {
     expect(slotLabel({ status, isExpress: express })).toBe(label);
@@ -49,10 +49,10 @@ describe('slot status mapping', () => {
         ]}
       />,
     );
-    const picked = screen.getByRole('button', { name: '08:00 to 10:00, Available' });
+    const picked = screen.getByRole('button', { name: '08:00 to 10:00, Free' });
     expect(picked).toBeEnabled();
     expect(picked).toHaveAttribute('aria-pressed', 'true');
-    for (const reason of ['No qualified tech', 'No bay free', 'Fully booked', 'Same-day quota full']) {
+    for (const reason of ['No technician', 'No bay', 'Booked up', 'Today is full']) {
       const b = screen.getByRole('button', { name: new RegExp(`, ${reason}$`) });
       expect(b).toBeDisabled();
       expect(b).toHaveAttribute('aria-pressed', 'false');

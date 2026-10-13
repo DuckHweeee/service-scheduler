@@ -9,7 +9,7 @@ test('book, reschedule to another day from the record, see the notice and histor
 }) => {
   const first = await firstSlotFreeForVehicle('OIL_CHANGE');
   await pickService(page, SERVICE, first.date);
-  await page.getByRole('button', { name: `${first.startTime} to ${first.endTime}, Available` }).click();
+  await page.getByRole('button', { name: `${first.startTime} to ${first.endTime}, Free` }).click();
   await page.getByRole('button', { name: 'Confirm appointment' }).click();
   const reference = await openRecordFromConfirmation(page);
 
@@ -23,7 +23,7 @@ test('book, reschedule to another day from the record, see the notice and histor
 
   const target = await firstSlotFreeForVehicle('OIL_CHANGE', [first.date]);
   await dateButton(page, target.date).click();
-  const slot = page.getByRole('button', { name: `${target.startTime} to ${target.endTime}, Available` });
+  const slot = page.getByRole('button', { name: `${target.startTime} to ${target.endTime}, Free` });
   await slot.click();
   await expect(slot).toHaveAttribute('aria-pressed', 'true');
   await page.getByRole('button', { name: 'Move appointment' }).click();
@@ -34,5 +34,5 @@ test('book, reschedule to another day from the record, see the notice and histor
 
   // The old slot can be booked again.
   await pickService(page, SERVICE, first.date);
-  await expect(page.getByRole('button', { name: `${first.startTime} to ${first.endTime}, Available` })).toBeEnabled();
+  await expect(page.getByRole('button', { name: `${first.startTime} to ${first.endTime}, Free` })).toBeEnabled();
 });

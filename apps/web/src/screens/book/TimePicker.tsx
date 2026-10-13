@@ -109,7 +109,7 @@ export function TimePicker({
 
       {date === today || data?.sameDay ? (
         <p className={styles.notice}>
-          {`Same-day booking covers express maintenance only. Please arrive on time — same-day bookings are released if you are more than ${graceMin} minutes late.`}
+          {`Same-day booking is for express jobs only. Please arrive on time. If you are more than ${graceMin} minutes late, we give your time to someone else.`}
         </p>
       ) : null}
 
@@ -142,17 +142,17 @@ export function TimePicker({
       ) : data?.sameDay?.blocked === 'SERVICE_NOT_EXPRESS' ? (
         <p
           className={styles.warn}
-        >{`${serviceName} can't be booked for today. Same-day booking covers express services: ${expressNames.join(', ')}.`}</p>
+        >{`${serviceName} can't be booked for today. Today we only take express jobs: ${expressNames.join(', ')}. Pick another day for this service.`}</p>
       ) : data?.sameDay?.blocked === 'PARTS_UNAVAILABLE' ? (
         <p className={styles.warn}>
           {fixedDealership
-            ? `Parts for this service aren't in stock at ${dealerName} today. Try a later date.`
-            : `Parts for this service aren't in stock at ${dealerName} today. Try another dealership or a later date.`}
+            ? `We don't have the parts for this service at ${dealerName} today. Try another day.`
+            : `We don't have the parts for this service at ${dealerName} today. Try another dealership or another day.`}
         </p>
       ) : data?.sameDay?.blocked === 'PAST_CUTOFF' ? (
         <p
           className={styles.warn}
-        >{`Same-day booking for today has closed. Earliest same-day start is ${data.sameDay.leadTimeMin / 60} hours ahead.`}</p>
+        >{`Booking for today is closed. Same-day jobs must start at least ${data.sameDay.leadTimeMin / 60} hours from now. Pick another day.`}</p>
       ) : (
         <>
           <SlotGrid slots={slots} selectedStart={selectedStart} currentStart={currentStart} onPick={onPick} />

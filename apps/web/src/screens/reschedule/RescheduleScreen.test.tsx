@@ -146,8 +146,8 @@ describe('W6-F5 reschedule findings', () => {
     const a = addAppointment({ date: '2026-10-09', startMin: 10 * 60, endMin: 10 * 60 + 45, serviceTypeCode: 'OIL_CHANGE' });
     renderReschedule(a.reference, 'morning,parts');
     await user.click(await screen.findByRole('button', { name: /^Today, Thu 8 Oct/ }));
-    const panel = await screen.findByText(/aren't in stock at/);
-    expect(panel).toHaveTextContent('Try a later date.');
+    const panel = await screen.findByText(/We don't have the parts for this service at/);
+    expect(panel).toHaveTextContent('Try another day.');
     expect(panel).not.toHaveTextContent(/another dealership/);
   });
 });

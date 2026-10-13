@@ -5,11 +5,11 @@ const SERVICE = 'Oil and filter change';
 
 test('book an advance appointment, open the record, cancel it and see the slot free again', async ({ page }) => {
   const { date, startTime, endTime } = await firstOpenSlot('OIL_CHANGE');
-  const slot = page.getByRole('button', { name: `${startTime} to ${endTime}, Available` });
+  const slot = page.getByRole('button', { name: `${startTime} to ${endTime}, Free` });
 
   await pickService(page, SERVICE, date);
   await expect(slot).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.getByText('Same-day booking covers express maintenance only')).toHaveCount(0);
+  await expect(page.getByText('Same-day booking is for express jobs only')).toHaveCount(0);
 
   await page.getByRole('button', { name: 'Confirm appointment' }).click();
 

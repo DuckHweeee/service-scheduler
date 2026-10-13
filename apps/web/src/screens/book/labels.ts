@@ -15,19 +15,19 @@ export const BAY_TYPE_LABEL: Record<BayType, string> = {
 };
 
 export const SLOT_STATUS_LABEL: Record<SlotStatus, string> = {
-  AVAILABLE: 'Available',
-  NO_QUALIFIED_TECHNICIAN: 'No qualified tech',
-  NO_BAY: 'No bay free',
-  FULLY_BOOKED: 'Fully booked',
-  SAME_DAY_QUOTA_REACHED: 'Same-day quota full',
+  AVAILABLE: 'Free',
+  NO_QUALIFIED_TECHNICIAN: 'No technician',
+  NO_BAY: 'No bay',
+  FULLY_BOOKED: 'Booked up',
+  SAME_DAY_QUOTA_REACHED: 'Today is full',
 };
 
-/** Visible status text of a slot. Available same-day slots read "Express slot". */
+/** Visible status text of a slot. Available same-day slots read "Express". */
 export function slotLabel(slot: Pick<AvailabilitySlot, 'status' | 'isExpress'>): string {
-  return slot.status === 'AVAILABLE' && slot.isExpress ? 'Express slot' : SLOT_STATUS_LABEL[slot.status];
+  return slot.status === 'AVAILABLE' && slot.isExpress ? 'Express' : SLOT_STATUS_LABEL[slot.status];
 }
 
-/** Accessible name of a slot button, e.g. "08:00 to 10:00, No qualified tech". */
+/** Accessible name of a slot button, e.g. "08:00 to 10:00, No technician". */
 export function slotAriaLabel(
   slot: Pick<AvailabilitySlot, 'startTime' | 'endTime' | 'status' | 'isExpress'>,
 ): string {
