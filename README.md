@@ -18,7 +18,10 @@ against mocks.
 
 ![Book a brake job, then reschedule it to another day: same booking number, history shows the move](docs/demo.gif)
 
-<sub>Recorded from the Docker stack with <a href="scripts/record-demo.mjs"><code>scripts/record-demo.mjs</code></a>.</sub>
+<sub>Recorded from the Docker stack with <a href="scripts/record-demo.mjs"><code>scripts/record-demo.mjs</code></a>.
+**Full walkthrough (2.5 min, captioned): [`docs/walkthrough.mp4`](docs/walkthrough.mp4)** — book, a lost race with alternatives,
+reschedule, same-day Express, the advisor's service board with check-in, and cancel
+(<a href="scripts/record-flow.mjs"><code>scripts/record-flow.mjs</code></a>).</sub>
 
 ## See it running — Docker, two commands
 
