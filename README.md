@@ -16,6 +16,10 @@ the provided design) that drives it. It was built as a Keyloop technical assessm
 **backend fully implemented and tested**; the web app is a client harness that can run against the real API or
 against mocks.
 
+![Book a brake job, then reschedule it to another day: same booking number, history shows the move](docs/demo.gif)
+
+<sub>Recorded from the Docker stack with <a href="scripts/record-demo.mjs"><code>scripts/record-demo.mjs</code></a>.</sub>
+
 ## See it running — Docker, two commands
 
 ```bash
