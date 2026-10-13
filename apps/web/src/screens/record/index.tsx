@@ -10,7 +10,7 @@ import { dateLong, dateTimeShort, durationText } from '../../lib/time.js';
 import { BAY_TYPE_LABEL, SKILL_LABEL } from '../book/labels.js';
 import { CancelDialog } from './CancelDialog.js';
 import styles from './Record.module.css';
-import { downloadIcs } from './ics.js';
+import { openGoogleCalendar } from './calendar.js';
 import { STATUS_LABEL, displayStatus } from './status.js';
 
 const ICON = {
@@ -146,7 +146,7 @@ function Record({ a }: { a: AppointmentDetail }) {
         </div>
         {canCancel && (
           <div className={styles.actions}>
-            <button type="button" className={styles.btnPrimary} onClick={() => downloadIcs(a)}>
+            <button type="button" className={styles.btnPrimary} onClick={() => openGoogleCalendar(a)}>
               Add to calendar
             </button>
             {canCancel && (

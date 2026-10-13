@@ -5,7 +5,7 @@ import { appointmentDetailExample } from '@scheduler/contracts/fixtures';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../../App.js';
 import { RecordScreen } from './index.js';
-import { buildIcs } from './ics.js';
+import { buildGoogleCalendarUrl } from './calendar.js';
 import { addAppointment, freezeClock, renderAt } from './testUtils.js';
 
 beforeEach(freezeClock);
@@ -148,13 +148,15 @@ describe('W6-F5 record findings', () => {
   });
 });
 
-describe('buildIcs', () => {
-  it('uses the reference as UID and UTC start/end', () => {
-    const ics = buildIcs(appointmentDetailExample, Date.UTC(2026, 9, 7, 7, 0, 0));
-    expect(ics).toContain('UID:APT-20261008-0409\r\n');
-    expect(ics).toContain('DTSTART:20261008T060000Z\r\n');
-    expect(ics).toContain('DTEND:20261008T080000Z\r\n');
-    expect(ics).toContain('SUMMARY:Brake pad replacement\r\n');
-    expect(ics).toContain('LOCATION:Northside Service Center\r\n');
+describe('buildGoogleCalendarUrl', () => {
+  it('prefills the quick-add URL with the appointment reference, UTC start/end, service and location', () => {
+    const url = buildGoogleCalendarUrl(appointmentDetailExample);
+    const params = new URL(url).searchParams;
+    expect(url.startsWith('https://calendar.google.com/calendar/render?')).toBe(true);
+    expect(params.get('action')).toBe('TEMPLATE');
+    expect(params.get('text')).toBe('Brake pad replacement');
+    expect(params.get('dates')).toBe('20261008T060000Z/20261008T080000Z');
+    expect(params.get('location')).toBe('Northside Service Center');
+    expect(params.get('details')).toBe('Appointment APT-20261008-0409');
   });
 });
