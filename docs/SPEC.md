@@ -1,6 +1,7 @@
 # Unified Service Scheduler — Technical Spec (the contract)
 
-Status: **v0.3 — locked for Wave 5** (v0.2 added same-day express booking; v0.3 adds reschedule, §6.5). Owner: Huy + Opus.
+Status: **v0.3.1 — locked for Wave 6** (v0.2 added same-day express booking; v0.3 adds reschedule, §6.5; v0.3.1 = §8
+plain-language copy and flow rules from the W6 web review). Owner: Huy + Opus.
 Sonnet agents implement against this document and must not change it. If a spec gap blocks you, stop and
 report it; do not invent.
 
@@ -299,7 +300,7 @@ Availability response:
 ```
 `sameDay` is `null` for future dates. When `sameDay.blocked` is non-null, `slots` is `[]`. A non-working day is not an
 error for availability: 200 with `isWorkingDay: false` and `slots: []` (and `sameDay: null`).
-`isExpress` on a slot = it is a same-day slot (UI label "Express slot"). `proposed` is a non-binding preview.
+`isExpress` on a slot = it is a same-day slot (UI label "Express"). `proposed` is a non-binding preview.
 Optional `excludeReference=APT-…` (reschedule screen): the grid is computed as if that appointment did not exist — its
 bay, technician, same-day quota share and vehicle window are free, and if it already holds same-day parts the parts
 check passes. Unknown reference → 404. The appointment must belong to the requested dealership, service and vehicle,
@@ -475,23 +476,30 @@ Book screen behaviour:
 - Defaults VEH-01 / BRAKE_PAD_REPLACEMENT / DLR-01 / first working day after today. Services not applicable to the
   selected vehicle's powertrain are hidden. Express services carry an "Express" tag.
 - Date strip: **Today** (if a working day; chip tagged "SAME-DAY") + next 5 working days.
-- Changing vehicle/service/dealer/date clears the slot and auto-selects the first `AVAILABLE`.
-- Non-available slots are disabled, hatched, and labelled: Available / No qualified tech / No bay free /
-  Fully booked / Same-day quota full. Same-day available slots show an "Express slot" label.
-- When Today is selected show the notice: *"Same-day booking covers express maintenance only. Please arrive on time —
-  same-day bookings are released if you are more than 15 minutes late."* (minutes from `lateGraceMin`).
-- `sameDay.blocked` panels: `SERVICE_NOT_EXPRESS` → "{service} can't be booked for today. Same-day booking covers express
-  services: {list}."; `PARTS_UNAVAILABLE` → "Parts for this service aren't in stock at {dealer} today. Try another
-  dealership or a later date."; `PAST_CUTOFF` → "Same-day booking for today has closed. Earliest same-day start is
-  {lead} hours ahead."
-- Summary sidebar shows the `proposed` bay/tech; Confirm shows "Checking bay and technician…"; 201 → confirmation
+- Changing vehicle/service/dealer/date clears the slot and auto-selects the first `AVAILABLE`. A 409 does **not**
+  auto-select: nothing is chosen until the customer picks a slot or an alternative (v0.3.1).
+- Copy is plain language (v0.3.1): short sentences, say what happened and what to do next, never show API codes.
+- Non-available slots are disabled, hatched, and labelled: Free / No technician / No bay / Booked up / Today is full.
+  Same-day available slots show an "Express" label.
+- When Today is selected show the notice: *"Same-day booking is for express jobs only. Please arrive on time. If you are
+  more than 15 minutes late, we give your time to someone else."* (minutes from `lateGraceMin`).
+- `sameDay.blocked` panels: `SERVICE_NOT_EXPRESS` → "{service} can't be booked for today. Today we only take express
+  jobs: {list}. Pick another day for this service."; `PARTS_UNAVAILABLE` → "We don't have the parts for this service at
+  {dealer} today. Try another dealership or another day." (reschedule: "… today. Try another day."); `PAST_CUTOFF` →
+  "Booking for today is closed. Same-day jobs must start at least {lead} hours from now. Pick another day."
+- Summary sidebar shows the `proposed` bay/tech; Confirm shows "Reserving your bay and technician…"; 201 → confirmation
   panel; 409 → warning panel listing alternatives as buttons and refetch availability. Fresh `bookingSessionId` per flow.
+- "Now" on screen (Today chip, upcoming vs past, Cancel / Reschedule / Check in visibility) is the browser clock, or the
+  MSW scenario clock in mock mode. The API's `CLOCK_OVERRIDE` is not visible to the browser; demos that pin it must pin
+  the browser clock too (as `e2e/support/test.ts` does). Exposing server time is future work.
 
 Reschedule screen (S7): opened from the record's **Reschedule** button (shown for `CONFIRMED`, not checked in, start in
 the future). Vehicle, service and dealership are fixed; a "Current" card shows the existing slot. Same date strip, slot
 grid, labels, same-day notice and blocked panels as Book, with availability requested using `excludeReference`; the
-current slot is marked "Current" and not selectable. "Move appointment" → "Checking bay and technician…" → 200 returns
-to the record with the notice "Appointment moved to {date} {time}."; 409 → the Book warning panel with alternatives.
+current slot is marked "Current" and not selectable, and **no slot is pre-selected** ("Move appointment" stays disabled
+until the customer picks one). "Move appointment" → "Reserving your bay and technician…" → 200 **replaces** the history
+entry with the record, which shows the notice "Appointment moved to {date} {time}." once; 409 → the Book warning panel
+with alternatives.
 
 Board: advisor view; blocks coloured by status/channel (same-day blocks tagged "Express"); a confirmed same-day or
 today's block has a **Check in** action; `NO_SHOW` blocks shown struck-through.
