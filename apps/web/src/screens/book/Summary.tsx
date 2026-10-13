@@ -125,7 +125,7 @@ export function Summary({
               disabled={checking}
               aria-busy={checking}
             >
-              {checking ? 'Checking bay and technician…' : confirmLabel}
+              {checking ? 'Reserving your bay and technician…' : confirmLabel}
             </button>
           </>
         ) : (

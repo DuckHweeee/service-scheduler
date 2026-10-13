@@ -8,7 +8,7 @@ test('a slot taken meanwhile gives a 409 panel with alternatives; picking one co
   const { date, startTime, endTime } = await firstOpenSlot('OIL_CHANGE');
 
   await pickService(page, SERVICE, date);
-  await expect(page.getByRole('button', { name: `${startTime} to ${endTime}, Available` })).toHaveAttribute(
+  await expect(page.getByRole('button', { name: `${startTime} to ${endTime}, Free` })).toHaveAttribute(
     'aria-pressed',
     'true',
   );
@@ -25,14 +25,14 @@ test('a slot taken meanwhile gives a 409 panel with alternatives; picking one co
   expect(await alternatives.count()).toBeGreaterThan(0);
 
   // The stale slot is now shown as unavailable.
-  await expect(page.getByRole('button', { name: new RegExp(`^${startTime} to ${endTime}, (?!Available)`) })).toBeDisabled();
+  await expect(page.getByRole('button', { name: new RegExp(`^${startTime} to ${endTime}, (?!Free)`) })).toBeDisabled();
 
   const first = alternatives.first();
   const label = (await first.innerText()).trim(); // e.g. "Mon 12 Oct · 12:00–12:45"
   const altStart = /· (\d\d:\d\d)–/.exec(label)![1]!;
   await first.click();
   await expect(panel).toHaveCount(0);
-  await expect(page.getByRole('button', { name: new RegExp(`^${altStart} to .*Available`) })).toHaveAttribute(
+  await expect(page.getByRole('button', { name: new RegExp(`^${altStart} to .*Free`) })).toHaveAttribute(
     'aria-pressed',
     'true',
   );

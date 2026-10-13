@@ -39,7 +39,7 @@ for (const viewport of VIEWPORTS) {
     test('book', async ({ page }) => {
       const { date, startTime, endTime } = await firstOpenSlot('OIL_CHANGE');
       await pickService(page, 'Oil and filter change', date);
-      await expect(page.getByRole('button', { name: `${startTime} to ${endTime}, Available` })).toHaveAttribute(
+      await expect(page.getByRole('button', { name: `${startTime} to ${endTime}, Free` })).toHaveAttribute(
         'aria-pressed',
         'true',
       );

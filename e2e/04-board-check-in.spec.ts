@@ -9,7 +9,7 @@ test('a same-day booking appears on the board with the Express tag', async ({ pa
   await page.goto('/book');
   await serviceButton(page, 'Oil and filter change').click();
   await dateButton(page, '2026-10-08').click();
-  await expect(page.getByRole('button', { name: /Express slot$/ }).first()).toBeVisible();
+  await expect(page.getByRole('button', { name: /Express$/ }).first()).toBeVisible();
   await page.getByRole('button', { name: 'Confirm appointment' }).click();
   await expect(page.getByRole('heading', { level: 1, name: /You're booked for Thursday 8 October/ })).toBeVisible();
   reference = await openRecordFromConfirmation(page);

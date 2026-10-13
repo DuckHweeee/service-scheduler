@@ -77,7 +77,7 @@ describe('Book screen', () => {
       const slots = enabledSlots(group);
       expect(slots[0]).toHaveAttribute('aria-pressed', 'true');
       expect(slots.filter((b) => b.getAttribute('aria-pressed') === 'true')).toHaveLength(1);
-      expect(slots[0]!.getAttribute('aria-label')).toMatch(/^\d\d:\d\d to \d\d:\d\d, Available$/);
+      expect(slots[0]!.getAttribute('aria-label')).toMatch(/^\d\d:\d\d to \d\d:\d\d, Free$/);
     });
   });
 
@@ -105,11 +105,11 @@ describe('Book screen', () => {
     await user.click(screen.getByRole('button', { name: /^Today, Thu 8 Oct/ }));
     expect(
       await screen.findByText(
-        /Brake pad replacement can't be booked for today\. Same-day booking covers express services: Oil and filter change, General inspection/,
+        /Brake pad replacement can't be booked for today\. Today we only take express jobs: Oil and filter change, General inspection.*\. Pick another day for this service\./,
       ),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Same-day booking covers express maintenance only\. Please arrive on time/),
+      screen.getByText(/Same-day booking is for express jobs only\. Please arrive on time/),
     ).toHaveTextContent('more than 15 minutes late');
     expect(screen.queryByRole('group', { name: 'Start time' })).not.toBeInTheDocument();
   });
@@ -126,7 +126,7 @@ describe('Book screen', () => {
     });
     const group = await slotGroup();
     const open = enabledSlots(group);
-    if (open.length) expect(open[0]).toHaveTextContent('Express slot');
+    if (open.length) expect(open[0]).toHaveTextContent('Express');
   });
 
   it('parts scenario blocks express services today', async () => {
@@ -137,7 +137,7 @@ describe('Book screen', () => {
     await user.click(screen.getByRole('button', { name: /^Today, Thu 8 Oct/ }));
     expect(
       await screen.findByText(
-        /Parts for this service aren't in stock at Northside Service Center today\. Try another dealership or a later date\./,
+        /We don't have the parts for this service at Northside Service Center today\. Try another dealership or another day\./,
       ),
     ).toBeInTheDocument();
   });
@@ -150,7 +150,7 @@ describe('Book screen', () => {
     await user.click(screen.getByRole('button', { name: /^Today, Thu 8 Oct/ }));
     expect(
       await screen.findByText(
-        /Same-day booking for today has closed\. Earliest same-day start is 2 hours ahead\./,
+        /Booking for today is closed\. Same-day jobs must start at least 2 hours from now\. Pick another day\./,
       ),
     ).toBeInTheDocument();
   });
